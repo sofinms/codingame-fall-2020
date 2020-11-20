@@ -21,7 +21,7 @@ class Bot
         r
     end
 
-    def find_sum_ings i1, i2
+    def self.find_sum_ings i1, i2
         r = []
         i1.each_with_index do |v,k|
             r.push(v+i2[k])
@@ -45,7 +45,7 @@ class Bot
     end
 
     def can_i_use_zel_now zel, storage
-        st = find_sum_ings zel['ings'], storage
+        st = Bot.find_sum_ings zel['ings'], storage
         st.select{|_e| _e < 0}.first.nil?
     end
 
@@ -98,7 +98,7 @@ class Bot
             if can_i
                 # STDERR.puts ttt + "can_i #{can_i} --\n"
                 best_paths = [need_zel['id']]
-                storage = find_sum_ings(need_zel['ings'], clear_storage)
+                storage = Bot.find_sum_ings(need_zel['ings'], clear_storage)
             else
                 # STDERR.puts ttt + "can_i #{can_i} --\n"
                 st = clear_storage.map{|_e| _e}
@@ -107,10 +107,10 @@ class Bot
                 while st[need_ing] < 0 do
                     need_ing_val = st[need_ing]
                     st[need_ing] = 0
-                    st = find_sum_ings(st, need_zel['ings'].map{|_e| r = _e; r = 0 if r > 0; r})
+                    st = Bot.find_sum_ings(st, need_zel['ings'].map{|_e| r = _e; r = 0 if r > 0; r})
                     result = find_path(st)
                     pp = pp + result['paths'] + [need_zel['id']]
-                    st = find_sum_ings(result['storage'], need_zel['ings'].map{|_e| r = _e; r = 0 if r < 0; r})
+                    st = Bot.find_sum_ings(result['storage'], need_zel['ings'].map{|_e| r = _e; r = 0 if r < 0; r})
                     st[need_ing] = st[need_ing] + need_ing_val
                 end
                 # STDERR.puts ttt + "after while st = #{st}, pp = #{pp}\n"
@@ -123,7 +123,7 @@ class Bot
         end
         # STDERR.puts ttt + "best paths = #{best_paths}\n"
         # STDERR.puts ttt + "storage = #{storage}\n"
-        storage = find_sum_ings(storage, other_minuses)
+        storage = Bot.find_sum_ings(storage, other_minuses)
         result = find_path storage
         storage = result['storage']
         best_paths += result['paths']
@@ -142,44 +142,68 @@ my_info = {
     'inv_1' => 0,
     'inv_2' => 0,
     'inv_3' => 0,
-    'score' => 0
+    'score' => 0,
+    'brew_count' => 0
 }
 him_info = {
     'inv_0' => 0,
     'inv_1' => 0,
     'inv_2' => 0,
     'inv_3' => 0,
-    'score' => 0
+    'score' => 0,
+    'brew_count' => 0
 }
 
-def get_max_price_brews brews
-    brews.sort_by{ |h| -h['price'] }.first
+def get_max_price_brews
+    @brews.sort_by{ |h| -h['price'] }.first
 end
 
-def get_minus_ingredients deltas
-    pairs = []
-    deltas.each_with_index do |v,i|
-        if v < 0
-            pairs.push [i,v.abs]
-        end
+def get_faster_brew bot
+    brews = @brews.sort_by do |brew|
+        storage_after_zel = Bot.find_sum_ings(@my_ings, brew['ings'])
+        res = bot.find_path storage_after_zel
+        res['paths'].count
     end
-    pairs
+    brews.first
 end
 
-def get_plus_ingredients deltas
-    pairs = []
-    deltas.each_with_index do |v,i|
-        if v > 0
-            pairs.push [i,v]
+def puts_cast zel
+    if (@my_ings + zel['ings']).sum > 10
+        STDERR.puts 'Too many ings'
+        @brews.sort_by{ |h| -h['price'] }.each do |brew|
+            ings = Bot.find_sum_ings(@my_ings, brew['ings'])
+            if ings.select{|_e| _e < 0}.first.nil?
+                puts "BREW #{brew['id']}"
+                return true
+            end
+        end
+        @learns.reverse.each do |learn|
+            ings = Bot.find_sum_ings(@my_ings, learn['ings'])
+            if ings.count < 10
+                puts "LEARN #{learn['id']}"
+                return true
+            end
+        end
+        return false
+    else
+        STDERR.puts "check for castable #{zel}"
+        if zel['castable']
+            puts "CAST #{zel['id']}"
+        else
+            puts "REST"
         end
     end
-    pairs
+    return true
 end
+
 first_iteration = true
+@learns = []
+@my_ings = []
+@brews = []
 loop do
-    brews = []
+    @brews = []
     zels = []
-    learns = []
+    @learns = []
     action_count = gets.to_i # the number of spells and recipes in play
     action_count.times do
         # action_id: the unique ID of this spell or recipe
@@ -207,7 +231,7 @@ loop do
 
         case action_type
         when 'BREW'
-            brews.push ({
+            @brews.push ({
                 'id' => action_id,
                 'price' => price,
                 'ings' => [delta_0, delta_1, delta_2, delta_3]
@@ -222,7 +246,7 @@ loop do
                 }
             )
         when 'LEARN'
-            learns.push ({
+            @learns.push ({
                 'id' => action_id,
                 'tome_index' => tome_index,
                 'tax_count' => tax_count,
@@ -233,26 +257,37 @@ loop do
         end
     end
     my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3'], my_info['score'] = gets.split(" ").collect { |x| x.to_i }
-    him_info['inv_0'], him_info['inv_1'], him_info['inv_2'], him_info['inv_3'], him_info['score'] = gets.split(" ").collect { |x| x.to_i }
+    him_info['inv_0'], him_info['inv_1'], him_info['inv_2'], him_info['inv_3'], him_score = gets.split(" ").collect { |x| x.to_i }
+    if him_info['score'] < him_score
+        him_info['brew_count'] += 1
+    end
+    him_info['score'] = him_score
 
-    STDERR.puts learns.to_s
+    STDERR.puts @learns.to_s
     STDERR.puts zels.to_s
-    bot.set_zels(zels + learns)
+    bot.set_zels(zels + @learns)
 
-    my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
-    max_price_brew = get_max_price_brews brews
-    storage_after_zel = bot.find_sum_ings(my_ings, max_price_brew['ings'])
-    if storage_after_zel.select{|_e| _e < 0}.first.nil?
-        STDERR.puts "I can brew - #{max_price_brew}"
-        puts "BREW #{max_price_brew['id']}"
+    @my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
+    STDERR.puts "Him brew = #{him_info['brew_count']}"
+    if him_info['brew_count'] < 5
+        goal_brew = get_max_price_brews
     else
-        STDERR.puts "I have no ings for - #{max_price_brew}"
+        STDERR.puts "search faster brew"
+        goal_brew = get_faster_brew bot
+    end
+    STDERR.puts "goal brew is #{goal_brew}"
+    storage_after_zel = Bot.find_sum_ings(@my_ings, goal_brew['ings'])
+    if storage_after_zel.select{|_e| _e < 0}.first.nil?
+        STDERR.puts "I can brew - #{goal_brew}"
+        puts "BREW #{goal_brew['id']}"
+    else
+        STDERR.puts "I have no ings for - #{goal_brew}"
         result_path_find = bot.find_path storage_after_zel
-        used_learns = learns.select{|_e| result_path_find['paths'].include? _e['id'] }
+        used_learns = @learns.select{|_e| result_path_find['paths'].include? _e['id'] }
         first_used_learn = used_learns.first
         if !first_used_learn.nil?
             STDERR.puts "I need a learn - #{first_used_learn}"
-            ings_for_learn = bot.find_sum_ings(my_ings, [-first_used_learn['tome_index'],0,0,0])
+            ings_for_learn = Bot.find_sum_ings(@my_ings, [-first_used_learn['tome_index'],0,0,0])
             STDERR.puts "ings for learn - #{ings_for_learn}"
             if ings_for_learn.select{|_e| _e < 0}.first.nil?
                 puts "LEARN #{first_used_learn['id']}"
@@ -260,20 +295,35 @@ loop do
                 bot.set_zels(zels)
                 res = bot.find_path ings_for_learn
                 STDERR.puts "path for learn - #{res['paths']}"
-                my_zel = zels.select{|_e| _e['id'] == res['paths'].first}.first
-                STDERR.puts my_zel.to_s
-                if my_zel['castable']
-                    puts "CAST #{my_zel['id']}"
-                else
-                    puts "REST" 
+                path = res['paths']
+                cast_fail = true
+                path.each do |zel_id|
+                    my_zel = zels.select{|_e| _e['id'] == zel_id}.first
+                    if puts_cast(my_zel)
+                        cast_fail = false
+                        break
+                    else
+                        STDERR.puts "Skip cast - #{my_zel}"
+                    end
+                end
+                if cast_fail
+                    puts 'REST'
                 end
             end
         else
-            my_zel = zels.select{|_e| _e['id'] == result_path_find['paths'].first}.first
-            if my_zel['castable']
-                puts "CAST #{my_zel['id']}"
-            else
-                puts "REST" 
+            path = result_path_find['paths']
+            cast_fail = true
+            path.each do |zel_id|
+                my_zel = zels.select{|_e| _e['id'] == zel_id}.first
+                if puts_cast(my_zel)
+                    cast_fail = false
+                    break
+                else
+                    STDERR.puts "Skip cast - #{my_zel}"
+                end
+            end
+            if cast_fail
+                puts 'REST'
             end
         end
     end
