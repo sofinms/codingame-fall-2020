@@ -30,7 +30,18 @@ class Bot
     end
 
     def find_need_zelies ing
-        @zels.select{|zel| zel['ings'][ing] > 0}
+        zels = @zels.select{|zel| zel['ings'][ing] > 0}
+        zels.reject do |zel|
+            big_ing = ing + 1
+            res = false
+            while big_ing < 4 do
+                if zel['ings'][big_ing] < 0
+                    res = true
+                end
+                big_ing += 1
+            end
+            res
+        end
     end
 
     def can_i_use_zel_now zel, storage
@@ -119,10 +130,7 @@ class Bot
         a = {'storage' => storage, 'paths' => best_paths}
         # STDERR.puts ttt + "#{a}\n"
         @tabs -= 1
-        {
-            'storage' => storage,
-            'paths' => best_paths
-        }
+        a
     end
 end
 
@@ -171,6 +179,7 @@ first_iteration = true
 loop do
     brews = []
     zels = []
+    learns = []
     action_count = gets.to_i # the number of spells and recipes in play
     action_count.times do
         # action_id: the unique ID of this spell or recipe
@@ -204,40 +213,68 @@ loop do
                 'ings' => [delta_0, delta_1, delta_2, delta_3]
             })
         when 'CAST'
-            deltas = 
             zels.push(
                 {
                     'id' => action_id,
                     'ings' => [delta_0, delta_1, delta_2, delta_3],
-                    'castable' => castable
+                    'castable' => castable,
+                    'repeatable' => repeatable
                 }
             )
+        when 'LEARN'
+            learns.push ({
+                'id' => action_id,
+                'tome_index' => tome_index,
+                'tax_count' => tax_count,
+                'castable' => castable,
+                'repeatable' => repeatable,
+                'ings' => [delta_0, delta_1, delta_2, delta_3]
+            })
         end
     end
-    bot.set_zels zels
-    
     my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3'], my_info['score'] = gets.split(" ").collect { |x| x.to_i }
     him_info['inv_0'], him_info['inv_1'], him_info['inv_2'], him_info['inv_3'], him_info['score'] = gets.split(" ").collect { |x| x.to_i }
 
+    STDERR.puts learns.to_s
+    STDERR.puts zels.to_s
+    bot.set_zels(zels + learns)
+
     my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
     max_price_brew = get_max_price_brews brews
-    
-    STDERR.puts my_ings.to_s
-    STDERR.puts max_price_brew['ings'].to_s
-    if !first_iteration
-        
-    end
     storage_after_zel = bot.find_sum_ings(my_ings, max_price_brew['ings'])
     if storage_after_zel.select{|_e| _e < 0}.first.nil?
+        STDERR.puts "I can brew - #{max_price_brew}"
         puts "BREW #{max_price_brew['id']}"
     else
-        path = bot.find_path storage_after_zel
-        my_zel = zels.select{|_e| _e['id'] == path['paths'].first}.first
-        STDERR.puts my_zel
-        if my_zel['castable']
-            puts "CAST #{my_zel['id']}"
+        STDERR.puts "I have no ings for - #{max_price_brew}"
+        result_path_find = bot.find_path storage_after_zel
+        used_learns = learns.select{|_e| result_path_find['paths'].include? _e['id'] }
+        first_used_learn = used_learns.first
+        if !first_used_learn.nil?
+            STDERR.puts "I need a learn - #{first_used_learn}"
+            ings_for_learn = bot.find_sum_ings(my_ings, [-first_used_learn['tome_index'],0,0,0])
+            STDERR.puts "ings for learn - #{ings_for_learn}"
+            if ings_for_learn.select{|_e| _e < 0}.first.nil?
+                puts "LEARN #{first_used_learn['id']}"
+            else
+                bot.set_zels(zels)
+                res = bot.find_path ings_for_learn
+                STDERR.puts "path for learn - #{res['paths']}"
+                my_zel = zels.select{|_e| _e['id'] == res['paths'].first}.first
+                STDERR.puts my_zel.to_s
+                if my_zel['castable']
+                    puts "CAST #{my_zel['id']}"
+                else
+                    puts "REST" 
+                end
+            end
         else
-            puts "REST" 
+            my_zel = zels.select{|_e| _e['id'] == result_path_find['paths'].first}.first
+            if my_zel['castable']
+                puts "CAST #{my_zel['id']}"
+            else
+                puts "REST" 
+            end
         end
     end
 
