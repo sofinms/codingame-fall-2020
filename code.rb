@@ -167,6 +167,24 @@ def get_faster_brew bot
     brews.first
 end
 
+def get_brew_ratings bot
+    @brews.each do |brew|
+        storage_after_zel = Bot.find_sum_ings(@my_ings, brew['ings'])
+        res = bot.find_path storage_after_zel
+        STDERR.puts "Brew #{brew['id']}, path count = #{res['paths'].count}, price = #{brew['price']}, rating = #{(brew['price'].to_f/res['paths'].count.to_f).to_f}"
+        res['paths'].count
+    end
+end
+
+def get_best_brew_rating bot
+    brews = @brews.sort_by do |brew|
+        storage_after_zel = Bot.find_sum_ings(@my_ings, brew['ings'])
+        res = bot.find_path storage_after_zel
+        -(brew['price'].to_f/res['paths'].count.to_f).to_f
+    end
+    brews.first
+end
+
 def puts_cast zel
     if (@my_ings + zel['ings']).sum > 10
         STDERR.puts 'Too many ings'
@@ -268,9 +286,11 @@ loop do
     bot.set_zels(zels + @learns)
 
     @my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
-    STDERR.puts "Him brew = #{him_info['brew_count']}"
+    STDERR.puts "Him brew count = #{him_info['brew_count']}"
+
+    get_brew_ratings bot
     if him_info['brew_count'] < 5
-        goal_brew = get_max_price_brews
+        goal_brew = get_best_brew_rating bot
     else
         STDERR.puts "search faster brew"
         goal_brew = get_faster_brew bot
@@ -281,9 +301,9 @@ loop do
         STDERR.puts "I can brew - #{goal_brew}"
         puts "BREW #{goal_brew['id']}"
     else
-        STDERR.puts "I have no ings for - #{goal_brew}"
         result_path_find = bot.find_path storage_after_zel
-        used_learns = @learns.select{|_e| result_path_find['paths'].include? _e['id'] }
+        STDERR.puts "I need ings. Path found = #{result_path_find['paths']}"
+        used_learns = @learns.select{|_e| result_path_find['paths'][0..8].include? _e['id'] }
         first_used_learn = used_learns.first
         if !first_used_learn.nil?
             STDERR.puts "I need a learn - #{first_used_learn}"
