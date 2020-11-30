@@ -27,34 +27,36 @@ my_inv = [3, 0, 0, 0]
 @recursion_level = 0
 
 def find_optimal_paths delta_inventory
-	#p delta_inventory
 	@recursion_level += 1
+	tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
+	STDERR.puts tabs + "Find_path for #{delta_inventory} --\n"
 	need_ing = delta_inventory.index { |ing| ing < 0 }
-	#p need_ing
 	if need_ing.nil?
-		@recursion_level -= 1
-		return {
+		info = {
 			'path' => [],
-			'ingredients' => []
+			'ingredients' => delta_inventory
 		}
+		STDERR.puts tabs + "#{info}\n"
+		@recursion_level -= 1
+		return info
 	end
 	needed_spells = get_needed_spells need_ing
-	#p needed_spells
 	all_paths = needed_spells.map do |needed_spell|
 		current_delta_inventory = delta_inventory.map { |x| x }
 		negative_ings_values = delta_inventory.map { |x| x < 0 ? x : 0 }
-		current_ing_only = delta_inventory.each_with_index.map { |x,i| need_ing == i ? x : 0 }
 		positive_ings = current_delta_inventory.each_with_index.map { |x,i| need_ing == i || x < 0 ? 0 : x }
 		spell_positive_ings = needed_spell["ings"].map { |x| x > 0 ? x : 0 }
 		result_info = find_optimal_paths(get_delta(needed_spell["ings"].map { |x| x > 0 ? 0 : x }, positive_ings))
+		STDERR.puts tabs + "result_info['ingredients'] = #{result_info["ingredients"]}\n"
+		STDERR.puts tabs + "negative_ings_values = #{negative_ings_values}\n"
+		STDERR.puts tabs + "spell_positive_ings = #{spell_positive_ings}\n"
+		STDERR.puts tabs + "Ingredients = #{get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings)}\n"
 		{
 			'path' => result_info["path"] + [needed_spell],
-			'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, current_ing_only, spell_positive_ings)
+			'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings)
 		}
 	end
 	optimal_path_info = nil
-	p "R_L #{@recursion_level}"
-	p all_paths
 	all_paths.each do |path_info|
 		result_info = find_optimal_paths path_info["ingredients"]
 		result_path = path_info["path"] + result_info["path"]
@@ -65,6 +67,7 @@ def find_optimal_paths delta_inventory
 			}
 		end
 	end
+	STDERR.puts tabs + "#{optimal_path_info}\n"
 	@recursion_level -= 1
 	return optimal_path_info
 end
@@ -90,3 +93,4 @@ def get_needed_spells idx
 end
 
 idx = find_optimal_paths(get_delta(my_inv, brew))
+p idx
