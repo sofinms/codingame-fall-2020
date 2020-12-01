@@ -16,10 +16,10 @@
         'id' => 4,
         'ings' => [0,0,-1,1]
     },
-    #{
-     #   'id' => 5,
-      #  'ings' => [0,0,2,0]
-    #},
+    {
+        'id' => 5,
+        'ings' => [0,0,2,0]
+    },
     {
         'id' => 10,
         'ings' => [0,0,1,-1]
@@ -62,6 +62,7 @@ def find_optimal_paths delta_inventory, history
 		positive_ings = current_delta_inventory.each_with_index.map { |x,i| need_ing == i || x < 0 ? 0 : x }
 		spell_positive_ings = needed_spell["ings"].map { |x| x > 0 ? x : 0 }
 		result_info = find_optimal_paths(get_delta(needed_spell["ings"].map { |x| x > 0 ? 0 : x }, positive_ings), new_history.map{|x| x.clone})
+		next if result_info.nil?
 
 		# STDERR.puts tabs + "result_info['ingredients'] = #{result_info["ingredients"]}\n"
 		# STDERR.puts tabs + "negative_ings_values = #{negative_ings_values}\n"
@@ -79,6 +80,7 @@ def find_optimal_paths delta_inventory, history
 		#STDERR.puts tabs + "path_info['history'] = #{path_info['history']}"
 		#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
 		result_info = find_optimal_paths path_info["ingredients"], path_info['history'].map{|x| x.clone}
+		next if result_info.nil?
 		result_path = path_info["path"] + result_info["path"]
 		if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
 			optimal_path_info = {
