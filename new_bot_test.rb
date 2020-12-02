@@ -50,10 +50,10 @@ def find_optimal_paths delta_inventory, used_spells
 	@recursion_level += 1
 	tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
 	STDERR.puts tabs + "@#{@recursion_level}\n"
-	# if @recursion_level > 5
-	# 	@recursion_level -= 1
-	# 	return nil
-	# end
+	if @recursion_level > 6
+		@recursion_level -= 1
+		return nil
+	end
 	
 	need_ing = delta_inventory.index { |ing| ing < 0 }
 	if need_ing.nil?
@@ -61,7 +61,6 @@ def find_optimal_paths delta_inventory, used_spells
 			'path' => [],
 			'ingredients' => delta_inventory
 		}
-		# STDERR.puts tabs + "#{info}\n"
 		@recursion_level -= 1
 		return info
 	end
@@ -78,14 +77,9 @@ def find_optimal_paths delta_inventory, used_spells
 		negative_ings_values = delta_inventory.map { |x| x < 0 ? x : 0 }
 		positive_ings = current_delta_inventory.each_with_index.map { |x,i| need_ing == i || x < 0 ? 0 : x }
 		spell_positive_ings = needed_spell["ings"].map { |x| x > 0 ? x : 0 }
-		STDERR.puts tabs + "Z = #{needed_spell['id']}\n"
+		# STDERR.puts tabs + "Z = #{needed_spell['id']}\n"
 		result_info = find_optimal_paths(get_delta(needed_spell["ings"].map { |x| x > 0 ? 0 : x }, positive_ings), new_used_spells)
 		next if result_info.nil?
-
-		# STDERR.puts tabs + "result_info['ingredients'] = #{result_info["ingredients"]}\n"
-		# STDERR.puts tabs + "negative_ings_values = #{negative_ings_values}\n"
-		# STDERR.puts tabs + "spell_positive_ings = #{spell_positive_ings}\n"
-		# STDERR.puts tabs + "Ingredients = #{get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings)}\n"
 
 		all_paths.push({
 			'path' => result_info["path"] + [needed_spell],
@@ -107,7 +101,7 @@ def find_optimal_paths delta_inventory, used_spells
 	end
 	# STDERR.puts tabs + "#{optimal_path_info}\n"
 	if optimal_path_info
-		STDERR.puts tabs + "optimal_path_info = #{optimal_path_info['path'].map{|_e| _e['id']}}\n"
+		# STDERR.puts tabs + "optimal_path_info = #{optimal_path_info['path'].map{|_e| _e['id']}}\n"
 	end
 	@recursion_level -= 1
 	return optimal_path_info
