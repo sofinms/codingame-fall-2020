@@ -20,31 +20,31 @@ time = Benchmark.measure do
 	    },
 	    {
 	        'id' => 5,
-	        'ings' => [0,-2,2,0]
+	        'ings' => [-3,1,1,0]
 	    },
 	    {
 	        'id' => 6,
-	        'ings' => [1,1,1,-1]
+	        'ings' => [1,0,1,0]
 	    },
 	    {
 	        'id' => 7,
-	        'ings' => [3,0,1,-1]
+	        'ings' => [2,2,0,-1]
 	    },
 	    {
 	        'id' => 8,
-	        'ings' => [0,-3,0,2]
+	        'ings' => [3,0,1,-1]
 	    },
 	    {
 	        'id' => 9,
-	        'ings' => [-3,3,0,0]
+	        'ings' => [2,-3,2,0]
 	    },
 	    {
 	        'id' => 10,
-	        'ings' => [1,-3,1,1]
+	        'ings' => [-4,0,2,0]
 	    }
 	]
 
-	brew = [0, -2, -1, -1]
+	brew = [0, 0, -2, -2]
 	my_inv = [3, 0, 0, 0]
 	@recursion_level = 0
 
@@ -94,7 +94,7 @@ time = Benchmark.measure do
 		optimal_path_info = nil
 		all_paths.each do |path_info|
 			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-			result_info = find_optimal_paths path_info["ingredients"], path_info['used_spells'].clone
+			result_info = find_optimal_paths path_info["ingredients"], []
 			next if result_info.nil?
 			result_path = path_info["path"] + result_info["path"]
 			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
