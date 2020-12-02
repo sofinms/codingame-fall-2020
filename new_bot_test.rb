@@ -18,6 +18,10 @@ time = Benchmark.measure do
 	        'id' => 4,
 	        'ings' => [0,0,-1,1]
 	    },
+	    # {
+	    #     'id' => 5,
+	    #     'ings' => [0,0,2,0]
+	    # }
 	    {
 	        'id' => 5,
 	        'ings' => [-3,1,1,0]
@@ -52,7 +56,7 @@ time = Benchmark.measure do
 		@recursion_level += 1
 		tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
 		STDERR.puts tabs + "@#{@recursion_level}\n"
-		if @recursion_level > 6
+		if @recursion_level > 5
 			@recursion_level -= 1
 			return nil
 		end
@@ -91,6 +95,8 @@ time = Benchmark.measure do
 				'used_spells' => result_info['used_spells']
 			})
 		end
+		all_paths = all_paths_filter(all_paths)
+
 		optimal_path_info = nil
 		all_paths.each do |path_info|
 			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
@@ -111,6 +117,24 @@ time = Benchmark.measure do
 		end
 		@recursion_level -= 1
 		return optimal_path_info
+	end
+
+	def all_paths_filter all_paths
+		return all_paths if all_paths.count < 2
+		all_paths = all_paths.sort_by{|_path| _path['path'].count}
+		index = 0
+		while index < all_paths.count - 1
+			p all_paths[index]['ingredients']
+			((index+1)..all_paths.count - 1).each do |compare_index|
+				p all_paths[compare_index]['ingredients']
+				next if all_paths[compare_index]['rejected'] == true
+				if all_paths[compare_index]['ingredients'][0] <= all_paths[index]['ingredients'][0] && all_paths[compare_index]['ingredients'][1] <= all_paths[index]['ingredients'][1] && all_paths[compare_index]['ingredients'][2] <= all_paths[index]['ingredients'][2] && all_paths[compare_index]['ingredients'][3] <= all_paths[index]['ingredients'][3]
+					all_paths[compare_index]['rejected'] = true
+				end
+			end
+			index += 1
+		end
+		all_paths.reject{|_path| _path['rejected']}
 	end
 
 	def get_delta *args
