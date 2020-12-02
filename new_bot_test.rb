@@ -61,7 +61,8 @@ time = Benchmark.measure do
 		if need_ing.nil?
 			info = {
 				'path' => [],
-				'ingredients' => delta_inventory
+				'ingredients' => delta_inventory,
+				'used_spells' => used_spells.clone
 			}
 			@recursion_level -= 1
 			return info
@@ -69,6 +70,7 @@ time = Benchmark.measure do
 		needed_spells = get_needed_spells need_ing
 		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp['id']}
 		STDERR.puts tabs + "used_spells = #{used_spells}\n"
+		STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e['id']}}\n"
 		all_paths = []
 		needed_spells.each do |needed_spell|
 			new_used_spells = used_spells.clone
@@ -85,19 +87,21 @@ time = Benchmark.measure do
 
 			all_paths.push({
 				'path' => result_info["path"] + [needed_spell],
-				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings)
+				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
+				'used_spells' => result_info['used_spells']
 			})
 		end
 		optimal_path_info = nil
 		all_paths.each do |path_info|
 			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-			result_info = find_optimal_paths path_info["ingredients"], used_spells.clone
+			result_info = find_optimal_paths path_info["ingredients"], path_info['used_spells'].clone
 			next if result_info.nil?
 			result_path = path_info["path"] + result_info["path"]
 			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
 				optimal_path_info = {
 					"path" => result_path,
-					"ingredients" => result_info["ingredients"]
+					"ingredients" => result_info["ingredients"],
+					"used_spells" => result_info['used_spells'].clone
 				}
 			end
 		end
