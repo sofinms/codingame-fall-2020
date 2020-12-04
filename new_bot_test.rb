@@ -18,37 +18,41 @@ time = Benchmark.measure do
 	        'id' => 4,
 	        'ings' => [0,0,-1,1]
 	    },
-	    # {
-	    #     'id' => 5,
-	    #     'ings' => [0,0,2,0]
-	    # }
 	    {
 	        'id' => 5,
-	        'ings' => [-3,1,1,0]
-	    },
-	    {
-	        'id' => 6,
 	        'ings' => [1,0,1,0]
 	    },
 	    {
+	        'id' => 6,
+	        'ings' => [-5,0,0,2]
+	    },
+	    {
 	        'id' => 7,
-	        'ings' => [2,2,0,-1]
+	        'ings' => [-3,1,1,0]
 	    },
 	    {
 	        'id' => 8,
-	        'ings' => [3,0,1,-1]
+	        'ings' => [0,0,-2,2]
 	    },
 	    {
 	        'id' => 9,
-	        'ings' => [2,-3,2,0]
+	        'ings' => [-2,0,1,0]
 	    },
 	    {
 	        'id' => 10,
-	        'ings' => [-4,0,2,0]
+	        'ings' => [0,2,0,0]
+	    },
+	    {
+	        'id' => 11,
+	        'ings' => [0,3,2,-2]
+	    },
+	    {
+	        'id' => 12,
+	        'ings' => [1,2,-1,0]
 	    }
 	]
 
-	brew = [0, 0, -2, -2]
+	brew = [-1, -1, -1, -3]
 	my_inv = [3, 0, 0, 0]
 	@recursion_level = 0
 
@@ -56,7 +60,7 @@ time = Benchmark.measure do
 		@recursion_level += 1
 		tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
 		STDERR.puts tabs + "@#{@recursion_level}\n"
-		if @recursion_level > 5
+		if @recursion_level > 6
 			@recursion_level -= 1
 			return nil
 		end
@@ -77,6 +81,7 @@ time = Benchmark.measure do
 		STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e['id']}}\n"
 		all_paths = []
 		needed_spells.each do |needed_spell|
+			STDERR.puts tabs + "needed_spell = #{needed_spell}\n"
 			new_used_spells = used_spells.clone
 			new_used_spells.push needed_spell['id']
 			check_delta = get_delta(delta_inventory, needed_spell["ings"])
@@ -124,9 +129,9 @@ time = Benchmark.measure do
 		all_paths = all_paths.sort_by{|_path| _path['path'].count}
 		index = 0
 		while index < all_paths.count - 1
-			p all_paths[index]['ingredients']
+			# p all_paths[index]['ingredients']
 			((index+1)..all_paths.count - 1).each do |compare_index|
-				p all_paths[compare_index]['ingredients']
+				# p all_paths[compare_index]['ingredients']
 				next if all_paths[compare_index]['rejected'] == true
 				if all_paths[compare_index]['ingredients'][0] <= all_paths[index]['ingredients'][0] && all_paths[compare_index]['ingredients'][1] <= all_paths[index]['ingredients'][1] && all_paths[compare_index]['ingredients'][2] <= all_paths[index]['ingredients'][2] && all_paths[compare_index]['ingredients'][3] <= all_paths[index]['ingredients'][3]
 					all_paths[compare_index]['rejected'] = true
