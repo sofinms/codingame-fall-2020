@@ -104,16 +104,16 @@ module CodingGame
                 r
             end
 
-            def find_path delta_inventory, used_spells, needed_spells, brew
+            def find_path delta_inventory, used_spells, needed_spells, prev_ings
             	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
             	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
             	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
             	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
             	@start_time = Time.now
-            	return find_optimal_path delta_inventory, used_spells, brew
+            	return find_optimal_path delta_inventory, used_spells, prev_ings
             end
 
-            def find_optimal_path delta_inventory, used_spells, brew = nil
+            def find_optimal_path delta_inventory, used_spells, prev_ings
         		@recursion_level += 1
         		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
         		# STDERR.puts tabs + "@#{@recursion_level}\n"
@@ -122,14 +122,8 @@ module CodingGame
         			@recursion_level -= 1
         			return nil
         		end
-
-                if brew
-                    delta_inventory_brew = get_delta(delta_inventory, brew.ings)
-                else
-                    delta_inventory_brew = delta_inventory
-                end
         		
-        		need_ing = delta_inventory_brew.index { |ing| ing < 0 }
+        		need_ing = delta_inventory.index { |ing| ing < 0 }
         		if need_ing.nil?
         			info = {
         				'path' => [],
@@ -141,12 +135,9 @@ module CodingGame
         			@recursion_level -= 1
         			return info
         		end
-                if brew
-                    needed_spells = [brew]
-                else
-            		needed_spells = get_needed_spells need_ing
-            		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
-                end
+        		needed_spells = get_needed_spells need_ing
+        		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
+                
         		# STDERR.puts tabs + "used_spells = #{used_spells}\n"
         		# STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e.id}}\n"
         		all_paths = []
@@ -161,19 +152,24 @@ module CodingGame
         			new_used_spells.push needed_spell.id
         			spell_positive_ings = []
         			spell_negative_ings = []
-        			needed_spell.ings.each do |x|
-        				spell_positive_ings.push(x > 0 ? x : 0)
-        				spell_negative_ings.push(x > 0 ? 0 : x)
-        			end			
-        			result_info = find_optimal_path(get_delta(spell_negative_ings, positive_ings), new_used_spells)
+                    possible_ings = []
+        			needed_spell.ings.each_with_index do |x, key|
+                        positive_val = x > 0 ? x : 0
+                        negative_val = x > 0 ? 0 : x
+                        if delta_inventory[key] > 0 && prev_ings[key] < 0 && positive_val > 0
+                            possible_ings.push(positive_val)
+                            positive_val = 0
+                        else
+                            possible_ings.push(0)
+                        end
+                        spell_negative_ings.push(negative_val)
+                        spell_positive_ings.push(positive_val)
+        			end
+        			result_info = find_optimal_path(get_delta(spell_negative_ings, positive_ings, possible_ings), new_used_spells, spell_negative_ings)
         			next if result_info.nil?
 
         			level = result_info['level'] - @recursion_level
-                    if needed_spell.type == 'BREW'
-                        type = 'BREW'
-                    else
-                        type = 'CAST'
-                    end
+                    type = 'CAST'
                     action = Simulation::Action.new(type, needed_spell)
         			all_paths.push({
         				'path' => result_info["path"] + [action],
@@ -196,7 +192,7 @@ module CodingGame
         		optimal_path_info = nil
         		all_paths.each do |path_info|
         			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-        			result_info = find_optimal_path path_info["ingredients"], []
+        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings
         			next if result_info.nil?
         			result_path = path_info["path"] + result_info["path"]
                     result_ings_path = path_info["ings_path"] + result_info["ings_path"]

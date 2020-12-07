@@ -98,318 +98,318 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     brew = CodingGame::Simulation::Brew.new(999,[-3,-1,-1,-1])
-    result = bot.find_path([7,0,0,0], [], subject.needed_spells, brew)
-    expect(result['path'].map{|spell| spell.link.id}).to eq [78, 33, 6]
+    result = bot.find_path([4,-1,-1,-1], [], subject.needed_spells, [-3,-1,-1,-1])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [33, 6]
   end
 
-  # it "second test" do
-  #   subject.add_spell({
-  #     'id' => 1,
-  #     'ings' => [2, 0, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 2,
-  #     'ings' => [-1, 1, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 3,
-  #     'ings' => [0, -1, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 4,
-  #     'ings' => [0, 0, -1, 1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 5,
-  #     'ings' => [0, 0, 2, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   bot = CodingGame::Simulation::Bot.new(subject.spells)
-  #   result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-  #   expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
-  # end
+  it "second test" do
+    subject.add_spell({
+      'id' => 1,
+      'ings' => [2, 0, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 2,
+      'ings' => [-1, 1, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 3,
+      'ings' => [0, -1, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 4,
+      'ings' => [0, 0, -1, 1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 5,
+      'ings' => [0, 0, 2, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
+  end
 
-  # it "third test" do
-  #   subject.add_spell({
-  #     'id' => 1,
-  #     'ings' => [2, 0, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 2,
-  #     'ings' => [-1, 1, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 3,
-  #     'ings' => [0, -1, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 4,
-  #     'ings' => [0, 0, -1, 1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 5,
-  #     'ings' => [0, 0, 2, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 10,
-  #     'ings' => [0, 0, 1, -1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 11,
-  #     'ings' => [0, -1, -1, 2],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   bot = CodingGame::Simulation::Bot.new(subject.spells)
-  #   result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-  #   expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
-  # end
+  it "third test" do
+    subject.add_spell({
+      'id' => 1,
+      'ings' => [2, 0, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 2,
+      'ings' => [-1, 1, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 3,
+      'ings' => [0, -1, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 4,
+      'ings' => [0, 0, -1, 1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 5,
+      'ings' => [0, 0, 2, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 10,
+      'ings' => [0, 0, 1, -1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 11,
+      'ings' => [0, -1, -1, 2],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
+  end
 
-  # it "fourth test" do
-  #   subject.add_spell({
-  #     'id' => 1,
-  #     'ings' => [2, 0, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 2,
-  #     'ings' => [-1, 1, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 3,
-  #     'ings' => [0, -1, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 4,
-  #     'ings' => [0, 0, -1, 1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 5,
-  #     'ings' => [0, -2, 2, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 6,
-  #     'ings' => [1, 1, 1, -1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 7,
-  #     'ings' => [3, 0, 1, -1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 8,
-  #     'ings' => [0, -3, 0, 2],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 9,
-  #     'ings' => [-3, 3, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 10,
-  #     'ings' => [1, -3, 1, 1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   bot = CodingGame::Simulation::Bot.new(subject.spells)
-  #   result = bot.find_path([3, -2, -1, -1], [], subject.needed_spells)
-  #   expect(result['path'].map{|spell| spell.link.id}).to eq [9, 8, 6, 2]
-  # end
-  # it "fifth test" do
-  #   subject.add_spell({
-  #     'id' => 1,
-  #     'ings' => [2, 0, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 2,
-  #     'ings' => [-1, 1, 0, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 3,
-  #     'ings' => [0, -1, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 4,
-  #     'ings' => [0, 0, -1, 1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 5,
-  #     'ings' => [-3, 1, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 6,
-  #     'ings' => [1, 0, 1, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 7,
-  #     'ings' => [2, 2, 0, -1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 8,
-  #     'ings' => [3, 0, 1, -1],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 9,
-  #     'ings' => [2, -3, 2, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   subject.add_spell({
-  #     'id' => 10,
-  #     'ings' => [-4, 0, 2, 0],
-  #     'castable' => true,
-  #     'repeatable' => false,
-  #     'tome_index' => nil,
-  #     'tax_count' => nil,
-  #     'type' => 'CAST'
-  #   })
-  #   bot = CodingGame::Simulation::Bot.new(subject.spells)
-  #   result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-  #   expect(result['path'].map{|spell| spell.link.id}).to eq [6, 10, 4, 6, 4]
-  # end
+  it "fourth test" do
+    subject.add_spell({
+      'id' => 1,
+      'ings' => [2, 0, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 2,
+      'ings' => [-1, 1, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 3,
+      'ings' => [0, -1, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 4,
+      'ings' => [0, 0, -1, 1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 5,
+      'ings' => [0, -2, 2, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 6,
+      'ings' => [1, 1, 1, -1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 7,
+      'ings' => [3, 0, 1, -1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 8,
+      'ings' => [0, -3, 0, 2],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 9,
+      'ings' => [-3, 3, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 10,
+      'ings' => [1, -3, 1, 1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([3, -2, -1, -1], [], subject.needed_spells, [0,-2,-1,-1])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [9, 8, 6, 2]
+  end
+  it "fifth test" do
+    subject.add_spell({
+      'id' => 1,
+      'ings' => [2, 0, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 2,
+      'ings' => [-1, 1, 0, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 3,
+      'ings' => [0, -1, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 4,
+      'ings' => [0, 0, -1, 1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 5,
+      'ings' => [-3, 1, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 6,
+      'ings' => [1, 0, 1, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 7,
+      'ings' => [2, 2, 0, -1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 8,
+      'ings' => [3, 0, 1, -1],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 9,
+      'ings' => [2, -3, 2, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    subject.add_spell({
+      'id' => 10,
+      'ings' => [-4, 0, 2, 0],
+      'castable' => true,
+      'repeatable' => false,
+      'tome_index' => nil,
+      'tax_count' => nil,
+      'type' => 'CAST'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [6, 10, 4, 6, 4]
+  end
 end
