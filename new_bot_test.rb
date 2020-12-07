@@ -77,7 +77,10 @@ class Bot
     end
 
     def find_path delta_inventory, used_spells, needed_spells
-    	@needed_spells = needed_spells
+    	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
+    	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
+    	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
+    	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
     	@start_time = Time.now
     	return find_optimal_path delta_inventory, used_spells
     end
