@@ -85,16 +85,16 @@ module CodingGame
                 r
             end
 
-            def find_path delta_inventory, used_spells, needed_spells
+            def find_path delta_inventory, used_spells, needed_spells, brew
             	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
             	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
             	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
             	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
             	@start_time = Time.now
-            	return find_optimal_path delta_inventory, used_spells
+            	return find_optimal_path delta_inventory, used_spells, brew
             end
 
-            def find_optimal_path delta_inventory, used_spells
+            def find_optimal_path delta_inventory, used_spells, brew = nil
         		@recursion_level += 1
         		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
         		# STDERR.puts tabs + "@#{@recursion_level}\n"
@@ -103,13 +103,20 @@ module CodingGame
         			@recursion_level -= 1
         			return nil
         		end
+
+                if brew
+                    delta_inventory_brew = get_delta(delta_inventory, brew)
+                else
+                    delta_inventory_brew = delta_inventory
+                end
         		
-        		need_ing = delta_inventory.index { |ing| ing < 0 }
+        		need_ing = delta_inventory_brew.index { |ing| ing < 0 }
         		if need_ing.nil?
         			info = {
         				'path' => [],
         				'ingredients' => delta_inventory,
         				'used_spells' => used_spells.clone,
+                        'ings_path' => [],
         				'level' => @recursion_level
         			}
         			@recursion_level -= 1
@@ -129,8 +136,6 @@ module CodingGame
         		needed_spells.each do |needed_spell|
         			new_used_spells = used_spells.clone
         			new_used_spells.push needed_spell.id
-        			check_delta = get_delta(delta_inventory, needed_spell.ings)
-        			#STDERR.puts tabs + "check_delta = #{check_delta}"
         			spell_positive_ings = []
         			spell_negative_ings = []
         			needed_spell.ings.each do |x|
@@ -145,7 +150,8 @@ module CodingGame
         				'path' => result_info["path"] + [needed_spell],
         				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
         				'used_spells' => result_info['used_spells'],
-        				'level' => level
+        				'level' => level,
+                        'ings_path' => result_info["ings_path"] + [get_delta(result_info["ingredients"], spell_positive_ings)]
         			})
         			# if @recursion_level == 1
         	  #           ending = Time.now
@@ -164,12 +170,14 @@ module CodingGame
         			result_info = find_optimal_path path_info["ingredients"], []
         			next if result_info.nil?
         			result_path = path_info["path"] + result_info["path"]
+                    result_ings_path = path_info["ings_path"] + result_info["ings_path"]
         			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
         				optimal_path_info = {
         					"path" => result_path,
         					"ingredients" => result_info["ingredients"],
         					"used_spells" => result_info['used_spells'].clone,
-        					'level' => result_info["level"]
+        					'level' => result_info["level"],
+                            'ings_path' => result_ings_path
         				}
         			end
         		end
