@@ -98,7 +98,7 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     result = bot.find_path([4,-1,-1,-1], [], subject.needed_spells)
-    expect(result['path'].map{|spell| spell.id}).to eq [78, 33, 6]
+    expect(result['path'].map{|spell| spell.link.id}).to eq [78, 33, 6]
   end
 
   it "second test" do
@@ -149,7 +149,7 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-    expect(result['path'].map{|spell| spell.id}).to eq [5, 5, 4, 4]
+    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
   end
 
   it "third test" do
@@ -218,7 +218,7 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-    expect(result['path'].map{|spell| spell.id}).to eq [5, 5, 4, 4]
+    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
   end
 
   it "fourth test" do
@@ -314,7 +314,7 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     result = bot.find_path([3, -2, -1, -1], [], subject.needed_spells)
-    expect(result['path'].map{|spell| spell.id}).to eq [9, 8, 6, 2]
+    expect(result['path'].map{|spell| spell.link.id}).to eq [9, 8, 6, 2]
   end
   it "fifth test" do
     subject.add_spell({
@@ -409,6 +409,6 @@ describe "simple" do
     })
     bot = CodingGame::Simulation::Bot.new(subject.spells)
     result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells)
-    expect(result['path'].map{|spell| spell.id}).to eq [6, 10, 4, 6, 4]
+    expect(result['path'].map{|spell| spell.link.id}).to eq [6, 10, 4, 6, 4]
   end
 end

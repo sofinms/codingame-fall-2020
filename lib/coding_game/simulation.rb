@@ -9,6 +9,15 @@ module CodingGame
             @needed_spells = []
         end
 
+        class Action
+            attr_accessor :type, :link
+
+            def initialize(type, link = nil)
+                @type = type
+                @link = link
+            end
+        end
+
         class Spell
             attr_accessor :id, :learn_id, :ings, :tome_index, :tax_count, :castable, :repeatable, :active, :type
 
@@ -85,16 +94,16 @@ module CodingGame
                 r
             end
 
-            def find_path delta_inventory, used_spells, needed_spells, brew
+            def find_path delta_inventory, used_spells, needed_spells
             	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
             	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
             	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
             	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
             	@start_time = Time.now
-            	return find_optimal_path delta_inventory, used_spells, brew
+            	return find_optimal_path delta_inventory, used_spells
             end
 
-            def find_optimal_path delta_inventory, used_spells, brew = nil
+            def find_optimal_path delta_inventory, used_spells
         		@recursion_level += 1
         		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
         		# STDERR.puts tabs + "@#{@recursion_level}\n"
@@ -104,13 +113,13 @@ module CodingGame
         			return nil
         		end
 
-                if brew
-                    delta_inventory_brew = get_delta(delta_inventory, brew)
-                else
-                    delta_inventory_brew = delta_inventory
-                end
+                # if brew
+                #     delta_inventory_brew = get_delta(delta_inventory, brew)
+                # else
+                #     delta_inventory_brew = delta_inventory
+                # end
         		
-        		need_ing = delta_inventory_brew.index { |ing| ing < 0 }
+        		need_ing = delta_inventory.index { |ing| ing < 0 }
         		if need_ing.nil?
         			info = {
         				'path' => [],
@@ -146,8 +155,9 @@ module CodingGame
         			next if result_info.nil?
 
         			level = result_info['level'] - @recursion_level
+                    action = Simulation::Action.new('LEARN', needed_spell)
         			all_paths.push({
-        				'path' => result_info["path"] + [needed_spell],
+        				'path' => result_info["path"] + [action],
         				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
         				'used_spells' => result_info['used_spells'],
         				'level' => level,
