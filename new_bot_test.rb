@@ -1,65 +1,92 @@
 require 'benchmark'
 
-time = Benchmark.measure do
-	@spells = [
-	    {
-	        'id' => 1,
-	        'ings' => [2,0,0,0]
-	    },
-	    {
-	        'id' => 2,
-	        'ings' => [-1,1,0,0]
-	    },
-	    {
-	        'id' => 3,
-	        'ings' => [0,-1,1,0]
-	    },
-	    {
-	        'id' => 4,
-	        'ings' => [0,0,-1,1]
-	    },
-	    {
-	        'id' => 5,
-	        'ings' => [1,0,1,0]
-	    },
-	    {
-	        'id' => 6,
-	        'ings' => [-5,0,0,2]
-	    },
-	    {
-	        'id' => 7,
-	        'ings' => [-3,1,1,0]
-	    },
-	    {
-	        'id' => 8,
-	        'ings' => [0,0,-2,2]
-	    },
-	    {
-	        'id' => 9,
-	        'ings' => [-2,0,1,0]
-	    },
-	    {
-	        'id' => 10,
-	        'ings' => [0,2,0,0]
-	    },
-	    {
-	        'id' => 11,
-	        'ings' => [0,3,2,-2]
-	    },
-	    {
-	        'id' => 12,
-	        'ings' => [1,2,-1,0]
-	    }
-	]
+class Spell
+    attr_accessor :id, :learn_id, :ings, :tome_index, :tax_count, :castable, :repeatable, :active, :type
 
-	brew = [-1, -1, -1, -3]
-	my_inv = [3, 0, 0, 0]
-	@recursion_level = 0
+    def initialize(id, ings, type)
+        @id = id
+        @ings = ings
+        @type = type
+        @active = true
+    end
+end
 
-	def find_optimal_paths delta_inventory, used_spells
+class Bot
+    def initialize spells
+        @recursion_level = 0
+        @spells = spells
+        @needed_spells = {}
+    end
+
+    def find_diff_ings i1, i2
+        r = []
+        i1.each_with_index do |v,k|
+            r.push(v-i2[k])
+        end
+        r
+    end
+
+    def self.find_sum_ings i1, i2
+        r = []
+        i1.each_with_index do |v,k|
+            r.push(v+i2[k])
+        end
+        r
+    end
+
+    def get_needed_spells idx
+        @needed_spells[idx]
+    end
+
+    def get_delta *args
+        delta = [0,0,0,0]
+        args.each do |arg_arr|
+            arg_arr.each_with_index do |ing, idx|
+                delta[idx] += ing
+            end
+        end
+        delta
+    end
+
+    def get_storage_without_other_minuses storage, ing
+        r = []
+        storage.each_with_index do |value, key|
+            if value < 0 && key != ing
+                value = 0
+            end
+            r.push value
+        end
+        r
+    end
+
+    def is_ingredients_in_history history, ings
+        !history.find { |state| state == ings }.nil?
+    end
+
+    def get_storage_other_minuses storage, ing
+        r = []
+        storage.each_with_index do |value, key|
+            if value < 0 && key != ing
+                value = value
+            else
+                value = 0
+            end
+            r.push value
+        end
+        r
+    end
+
+    def find_path delta_inventory, used_spells, needed_spells
+    	@needed_spells = needed_spells
+    	@start_time = Time.now
+    	return find_optimal_path delta_inventory, used_spells
+    end
+
+    def find_optimal_path delta_inventory, used_spells
 		@recursion_level += 1
-		tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
-		STDERR.puts tabs + "@#{@recursion_level}\n"
+		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
+		# STDERR.puts tabs + "@#{@recursion_level}\n"
+		# STDERR.puts tabs + "delta_inventory = #{delta_inventory}\n"
 		if @recursion_level > 6
 			@recursion_level -= 1
 			return nil
@@ -70,49 +97,67 @@ time = Benchmark.measure do
 			info = {
 				'path' => [],
 				'ingredients' => delta_inventory,
-				'used_spells' => used_spells.clone
+				'used_spells' => used_spells.clone,
+				'level' => @recursion_level
 			}
 			@recursion_level -= 1
 			return info
 		end
 		needed_spells = get_needed_spells need_ing
-		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp['id']}
-		STDERR.puts tabs + "used_spells = #{used_spells}\n"
-		STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e['id']}}\n"
+		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
+		# STDERR.puts tabs + "used_spells = #{used_spells}\n"
+		# STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e.id}}\n"
 		all_paths = []
+		negative_ings_values = []
+		positive_ings = []
+		delta_inventory.each_with_index do |value, key|
+			negative_ings_values.push(value < 0 ? value : 0)
+			positive_ings.push(need_ing == key || value < 0 ? 0 : value)
+		end
 		needed_spells.each do |needed_spell|
-			STDERR.puts tabs + "needed_spell = #{needed_spell}\n"
 			new_used_spells = used_spells.clone
-			new_used_spells.push needed_spell['id']
-			check_delta = get_delta(delta_inventory, needed_spell["ings"])
+			new_used_spells.push needed_spell.id
+			check_delta = get_delta(delta_inventory, needed_spell.ings)
 			#STDERR.puts tabs + "check_delta = #{check_delta}"
-			current_delta_inventory = delta_inventory.map { |x| x }
-			negative_ings_values = delta_inventory.map { |x| x < 0 ? x : 0 }
-			positive_ings = current_delta_inventory.each_with_index.map { |x,i| need_ing == i || x < 0 ? 0 : x }
-			spell_positive_ings = needed_spell["ings"].map { |x| x > 0 ? x : 0 }
-			# STDERR.puts tabs + "Z = #{needed_spell['id']}\n"
-			result_info = find_optimal_paths(get_delta(needed_spell["ings"].map { |x| x > 0 ? 0 : x }, positive_ings), new_used_spells)
+			spell_positive_ings = []
+			spell_negative_ings = []
+			needed_spell.ings.each do |x|
+				spell_positive_ings.push(x > 0 ? x : 0)
+				spell_negative_ings.push(x > 0 ? 0 : x)
+			end			
+			result_info = find_optimal_path(get_delta(spell_negative_ings, positive_ings), new_used_spells)
 			next if result_info.nil?
 
+			level = result_info['level'] - @recursion_level
 			all_paths.push({
 				'path' => result_info["path"] + [needed_spell],
 				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
-				'used_spells' => result_info['used_spells']
+				'used_spells' => result_info['used_spells'],
+				'level' => level
 			})
+			# if @recursion_level == 1
+	  #           ending = Time.now
+	  #           elapsed = ending - @start_time
+	  #           STDERR.puts "Find path elapsed = #{elapsed}"
+	  #           STDERR.puts "all_paths = #{all_paths.count}"
+	  #           STDERR.puts "level = #{level}"
+	  #           STDERR.puts "path_count = #{(result_info["path"] + [needed_spell]).count}"
+	  #       end
 		end
-		all_paths = all_paths_filter(all_paths)
+		# all_paths = all_paths_filter(all_paths)
 
 		optimal_path_info = nil
 		all_paths.each do |path_info|
 			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-			result_info = find_optimal_paths path_info["ingredients"], []
+			result_info = find_optimal_path path_info["ingredients"], []
 			next if result_info.nil?
 			result_path = path_info["path"] + result_info["path"]
 			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
 				optimal_path_info = {
 					"path" => result_path,
 					"ingredients" => result_info["ingredients"],
-					"used_spells" => result_info['used_spells'].clone
+					"used_spells" => result_info['used_spells'].clone,
+					'level' => result_info["level"]
 				}
 			end
 		end
@@ -129,9 +174,7 @@ time = Benchmark.measure do
 		all_paths = all_paths.sort_by{|_path| _path['path'].count}
 		index = 0
 		while index < all_paths.count - 1
-			# p all_paths[index]['ingredients']
 			((index+1)..all_paths.count - 1).each do |compare_index|
-				# p all_paths[compare_index]['ingredients']
 				next if all_paths[compare_index]['rejected'] == true
 				if all_paths[compare_index]['ingredients'][0] <= all_paths[index]['ingredients'][0] && all_paths[compare_index]['ingredients'][1] <= all_paths[index]['ingredients'][1] && all_paths[compare_index]['ingredients'][2] <= all_paths[index]['ingredients'][2] && all_paths[compare_index]['ingredients'][3] <= all_paths[index]['ingredients'][3]
 					all_paths[compare_index]['rejected'] = true
@@ -141,29 +184,134 @@ time = Benchmark.measure do
 		end
 		all_paths.reject{|_path| _path['rejected']}
 	end
+end
 
-	def get_delta *args
-		delta = [0,0,0,0]
-		args.each do |arg_arr|
-			arg_arr.each_with_index do |ing, idx|
-				delta[idx] += ing
-			end
-		end
-		delta
-	end
+def add_spell spell
+    prev_spell = @spells.find{|_sp| _sp.ings == spell['ings']}
+    if prev_spell.nil?
+        new_spell = Spell.new(spell['id'], spell['ings'], spell['type'])
+        new_spell.castable = spell['castable']
+        new_spell.repeatable = spell['repeatable']
+        if spell['type'] == 'LEARN'
+            new_spell.learn_id = spell['id']
+            new_spell.tome_index = spell['tome_index']
+            new_spell.tax_count = spell['tax_count']
+        end
+        new_spell.ings.each_with_index do |v,k|
+            if v > 0
+            	@needed_spells[k] = [] if @needed_spells[k].nil?
+            	@needed_spells[k].push new_spell
+            end
+        end
+        @spells.push(new_spell)
+    else
+        prev_spell.type = spell['type']
+        prev_spell.id = spell['id']
+        prev_spell.castable = spell['castable']
+        prev_spell.repeatable = spell['repeatable']
+        prev_spell.tome_index = spell['tome_index']
+        prev_spell.tax_count = spell['tax_count']
+        prev_spell.active = true
+    end
+end
 
-	def get_needed_spells idx
-		variants = []
-		@spells.each do |spell|
-			if spell["ings"][idx] > 0
-				variants.push(spell)
-			end
-		end
-		variants
-	end
+time = Benchmark.measure do
+	@spells = []
+	@needed_spells = []
+	bot = Bot.new(@spells)
+	
+	add_spell({
+        'id' => 78,
+        'ings' => [2, 0, 0, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'CAST'
+    })
+	add_spell({
+        'id' => 79,
+        'ings' => [-1, 1, 0, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'CAST'
+    })
+	add_spell({
+        'id' => 80,
+        'ings' => [0, -1, 1, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'CAST'
+    })
+	add_spell({
+        'id' => 81,
+        'ings' => [0, 0, -1, 1],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'CAST'
+    })
+	add_spell({
+        'id' => 19,
+        'ings' => [0, 2, -1, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+	add_spell({
+        'id' => 32,
+        'ings' => [1, 1, 3, -2],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+	add_spell({
+        'id' => 26,
+        'ings' => [1, 1, 1, -1],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+	add_spell({
+        'id' => 39,
+        'ings' => [0, 0, -2, 2],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+	add_spell({
+        'id' => 33,
+        'ings' => [-5, 0, 3, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+	add_spell({
+        'id' => 6,
+        'ings' => [2, 1, -2, 1],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
 
-	delta = get_delta(my_inv, brew)
-	idx = find_optimal_paths(delta, [])
+	idx = bot.find_path([4,-1,-1,-1], [], @needed_spells)
 	p idx
 end
 puts time
