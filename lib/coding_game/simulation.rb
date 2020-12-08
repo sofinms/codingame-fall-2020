@@ -113,23 +113,28 @@ module CodingGame
             	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
             	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
             	@start_time = Time.now
-            	return find_optimal_path delta_inventory, used_spells, prev_ings
+            	return find_optimal_path delta_inventory, used_spells, prev_ings, {}
             end
 
-            def find_optimal_path delta_inventory, used_spells, prev_ings, level = 1, level_2 = 1
+            def find_optimal_path delta_inventory, used_spells, prev_ings, level = 1, level_2 = 1, prev_path_count = 0, levels_max_deeps
         		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
         		# STDERR.puts tabs + "@#{@recursion_level}\n"
         		# STDERR.puts tabs + "delta_inventory = #{delta_inventory}\n"
 
-                # if level == 6
-                #     p used_spells
-                # end
+                if level > 1 || level_2 > 1
+                    # p @levels_max_deeps
+                    # p delta_inventory
+                    # p used_spells
+                    # p level_2
+                    # p level
+                    # p '-----'
+                end
 
                 if level > 9
                     return nil
                 end
 
-                if level_2 > 4
+                if level_2 > 5
                     return nil
                 end
 
@@ -144,6 +149,10 @@ module CodingGame
         			}
         			return info
         		end
+                
+                if levels_max_deeps["#{level_2}-#{level}"] && levels_max_deeps["#{level_2}-#{level}"] <= prev_path_count + 1
+                    return nil
+                end
         		needed_spells = get_needed_spells need_ing
         		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
                 
@@ -156,6 +165,9 @@ module CodingGame
         			negative_ings_values.push(value < 0 ? value : 0)
         			positive_ings.push(need_ing == key || value < 0 ? 0 : value)
         		end
+                if level_2 == 1 && level == 1
+                    needed_spells = needed_spells.reverse
+                end
         		needed_spells.each do |needed_spell|
         			new_used_spells = used_spells.clone
         			new_used_spells.push needed_spell.id
@@ -179,7 +191,8 @@ module CodingGame
                     # p level
                     # p level_2
                     # p '-------'
-        			result_info = find_optimal_path(n_d, new_used_spells, spell_negative_ings, level+1, level_2)
+
+        			result_info = find_optimal_path(n_d, new_used_spells, spell_negative_ings, level+1, level_2, prev_path_count + 1, levels_max_deeps.clone)
         			if result_info.nil?
                         @depricated.push(n_d + [needed_spell])
                     end
@@ -189,7 +202,6 @@ module CodingGame
                     # end
                     next if result_info.nil?
 
-        			# level = result_info['level'] - @recursion_level
                     type = 'CAST'
                     action = Simulation::Action.new(type, needed_spell)
         			all_paths.push({
@@ -212,18 +224,41 @@ module CodingGame
 
         		optimal_path_info = nil
         		all_paths.each do |path_info|
-                    p path_info['used_spells']
-                    p path_info["ingredients"]
-                    p "level = #{level} level_2 = #{level_2}"
-                    p '----------------------'
+                    if level_2 == 1 && level == 1
+                        p path_info["path"].map{|spell| spell.link.id}
+                    end
+                    if level_2 == 1 && level == 1
+                        # p @levels_max_deeps
+                    end
+                    # p path_info['used_spells']
+                    # p path_info["ingredients"]
+                    # p "level = #{level} level_2 = #{level_2}"
+                    # p '----------------------'
                     next if @depricated_2.include?(path_info["ingredients"] + path_info['used_spells'])
         			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings, 1, level_2 + 1
+        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings, 1, level_2 + 1, path_info["path"].count, levels_max_deeps.clone
                     if result_info.nil?
                         @depricated_2.push(path_info["ingredients"] + path_info['used_spells'])
                     end
         			next if result_info.nil?
         			result_path = path_info["path"] + result_info["path"]
+                    if level_2 == 1 && level == 1
+                        p levels_max_deeps
+                    end
+                    if levels_max_deeps["#{level_2}-#{level}"].nil?
+                        levels_max_deeps["#{level_2}-#{level}"] = result_path.count
+                    else
+                        if levels_max_deeps["#{level_2}-#{level}"] > result_path.count
+                            levels_max_deeps["#{level_2}-#{level}"] = result_path.count
+                        end
+                    end
+                    
+                    if level_2 == 1 && level == 1
+                        p result_path.map{|spell| spell.link.id}
+                        p levels_max_deeps
+                        p '--------'
+                    end
+                
                     result_ings_path = path_info["ings_path"] + result_info["ings_path"]
         			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
         				optimal_path_info = {
