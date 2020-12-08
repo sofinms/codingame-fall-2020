@@ -44,6 +44,7 @@ module CodingGame
                 @recursion_level = 0
                 @spells = spells
                 @needed_spells = {}
+                @depricated = []
             end
 
             def find_diff_ings i1, i2
@@ -105,6 +106,8 @@ module CodingGame
             end
 
             def find_path delta_inventory, used_spells, needed_spells, prev_ings
+                @depricated = []
+                @depricated_2 = []
             	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
             	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
             	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
@@ -113,15 +116,23 @@ module CodingGame
             	return find_optimal_path delta_inventory, used_spells, prev_ings
             end
 
-            def find_optimal_path delta_inventory, used_spells, prev_ings
-        		@recursion_level += 1
+            def find_optimal_path delta_inventory, used_spells, prev_ings, level = 1, level_2 = 1
         		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
         		# STDERR.puts tabs + "@#{@recursion_level}\n"
         		# STDERR.puts tabs + "delta_inventory = #{delta_inventory}\n"
-        		if @recursion_level > 6
-        			@recursion_level -= 1
-        			return nil
-        		end
+
+                # if level == 6
+                #     p used_spells
+                # end
+
+                if level > 9
+                    return nil
+                end
+
+                if level_2 > 4
+                    return nil
+                end
+
         		
         		need_ing = delta_inventory.index { |ing| ing < 0 }
         		if need_ing.nil?
@@ -129,10 +140,8 @@ module CodingGame
         				'path' => [],
         				'ingredients' => delta_inventory,
         				'used_spells' => used_spells.clone,
-                        'ings_path' => [],
-        				'level' => @recursion_level
+                        'ings_path' => []
         			}
-        			@recursion_level -= 1
         			return info
         		end
         		needed_spells = get_needed_spells need_ing
@@ -165,17 +174,29 @@ module CodingGame
                         spell_negative_ings.push(negative_val)
                         spell_positive_ings.push(positive_val)
         			end
-        			result_info = find_optimal_path(get_delta(spell_negative_ings, positive_ings, possible_ings), new_used_spells, spell_negative_ings)
-        			next if result_info.nil?
+                    n_d = get_delta(spell_negative_ings, positive_ings, possible_ings)
+                    next if @depricated.include?(n_d + [needed_spell])
+                    # p level
+                    # p level_2
+                    # p '-------'
+        			result_info = find_optimal_path(n_d, new_used_spells, spell_negative_ings, level+1, level_2)
+        			if result_info.nil?
+                        @depricated.push(n_d + [needed_spell])
+                    end
+                    # if result_info.nil?
+                    #     p n_d
+                    #     p '------'
+                    # end
+                    next if result_info.nil?
 
-        			level = result_info['level'] - @recursion_level
+        			# level = result_info['level'] - @recursion_level
                     type = 'CAST'
                     action = Simulation::Action.new(type, needed_spell)
         			all_paths.push({
         				'path' => result_info["path"] + [action],
         				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
         				'used_spells' => result_info['used_spells'],
-        				'level' => level,
+        				# 'level' => level,
                         'ings_path' => result_info["ings_path"] + [get_delta(result_info["ingredients"], spell_positive_ings)]
         			})
         			# if @recursion_level == 1
@@ -191,8 +212,16 @@ module CodingGame
 
         		optimal_path_info = nil
         		all_paths.each do |path_info|
+                    p path_info['used_spells']
+                    p path_info["ingredients"]
+                    p "level = #{level} level_2 = #{level_2}"
+                    p '----------------------'
+                    next if @depricated_2.include?(path_info["ingredients"] + path_info['used_spells'])
         			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings
+        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings, 1, level_2 + 1
+                    if result_info.nil?
+                        @depricated_2.push(path_info["ingredients"] + path_info['used_spells'])
+                    end
         			next if result_info.nil?
         			result_path = path_info["path"] + result_info["path"]
                     result_ings_path = path_info["ings_path"] + result_info["ings_path"]
@@ -201,16 +230,11 @@ module CodingGame
         					"path" => result_path,
         					"ingredients" => result_info["ingredients"],
         					"used_spells" => result_info['used_spells'].clone,
-        					'level' => result_info["level"],
+        					# 'level' => result_info["level"],
                             'ings_path' => result_ings_path
         				}
         			end
         		end
-        		# STDERR.puts tabs + "#{optimal_path_info}\n"
-        		if optimal_path_info
-        			# STDERR.puts tabs + "optimal_path_info = #{optimal_path_info['path'].map{|_e| _e['id']}}\n"
-        		end
-        		@recursion_level -= 1
         		return optimal_path_info
         	end
 
