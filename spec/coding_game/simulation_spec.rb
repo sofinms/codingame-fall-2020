@@ -412,4 +412,196 @@ describe "simple" do
     result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
     expect(result['path'].map{|spell| spell.link.id}).to eq [6, 10, 4, 6, 4]
   end
+
+  it "6 test" do
+    subject.add_spell({
+          'id' => 78,
+          'ings' => [2, 0, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 79,
+          'ings' => [-1, 1, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 80,
+          'ings' => [0, -1, 1, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 81,
+          'ings' => [0, 0, -1, 1],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 10,
+          'ings' => [2, 2, 0, -1],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 38,
+          'ings' => [-2, 2, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 19,
+          'ings' => [0, 2, -1, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 32,
+          'ings' => [1, 1, 3, -2],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+        'id' => 26,
+        'ings' => [1, 1, 1, -1],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+    subject.add_spell({
+        'id' => 39,
+        'ings' => [0, 0, -2, 2],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([1,0,-3,-2], [], subject.needed_spells, [0,0,-3,-2])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [79, 80, 78, 79, 80, 79, 80, 39, 32, 80, 39]
+  end
+
+  it "7 test" do
+    subject.add_spell({
+          'id' => 78,
+          'ings' => [2, 0, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 79,
+          'ings' => [-1, 1, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 80,
+          'ings' => [0, -1, 1, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 81,
+          'ings' => [0, 0, -1, 1],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 23,
+          'ings' => [1, -3, 1, 1],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 40,
+          'ings' => [0, -2, 2, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 31,
+          'ings' => [0, 3, 2, -2],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+          'id' => 36,
+          'ings' => [0, -3, 3, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'LEARN'
+      })
+    subject.add_spell({
+        'id' => 10,
+        'ings' => [2, 2, 0, -1],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+    subject.add_spell({
+        'id' => 38,
+        'ings' => [-2, 2, 0, 0],
+        'castable' => true,
+        'repeatable' => false,
+        'tome_index' => nil,
+        'tax_count' => nil,
+        'type' => 'LEARN'
+    })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([0,-2,-2,0], [], subject.needed_spells, [-2,-2,0,0])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [78, 38, 78, 38, 40]
+  end
 end
