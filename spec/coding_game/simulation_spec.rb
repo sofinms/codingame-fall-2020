@@ -699,6 +699,49 @@ describe "simple" do
     result = bot.find_path([2,-1,-1,-3], [], subject.needed_spells, [-1,-1,-1,-3])
     expect(result['path'].map{|spell| spell.link.id}).to eq [79, 4, 30, 14, 14]
   end
+
+  it "9 test" do
+    subject.add_spell({
+          'id' => 78,
+          'ings' => [2, 0, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 79,
+          'ings' => [-1, 1, 0, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 80,
+          'ings' => [0, -1, 1, 0],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    subject.add_spell({
+          'id' => 81,
+          'ings' => [0, 0, -1, 1],
+          'castable' => true,
+          'repeatable' => false,
+          'tome_index' => nil,
+          'tax_count' => nil,
+          'type' => 'CAST'
+      })
+    bot = CodingGame::Simulation::Bot.new(subject.spells)
+    result = bot.find_path([3,0,-2,-2], [], subject.needed_spells, [-3,-1,-1,-1])
+    expect(result['path'].map{|spell| spell.link.id}).to eq [79, 79, 79, 78, 79, 80, 81, 80, 81, 80, 80]
+  end
+  
   fit "spell tree test" do
     subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
