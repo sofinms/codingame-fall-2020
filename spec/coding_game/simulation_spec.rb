@@ -5,7 +5,7 @@ describe "simple" do
     CodingGame::Simulation.new
   }
 
-  it "first test" do
+  fit "first test" do
     subject.add_spell({
           'id' => 78,
           'ings' => [2, 0, 0, 0],
@@ -96,10 +96,26 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    brew = CodingGame::Simulation::Brew.new(999,[-3,-1,-1,-1])
-    result = bot.find_path([4,-1,-1,-1], [], subject.needed_spells, [-3,-1,-1,-1])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [33, 6]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    #brew = CodingGame::Simulation::Brew.new(999,[-3,-1,-1,-1])
+    #expect(result['path'].map{|spell| spell.link.id}).to eq [33, 6]
+    paths = []
+    tree.states_history.each do |state, value|
+      paths.push({
+        'level' => value.level,
+        'node' => value
+      })
+    end
+    paths = paths.sort_by{|x| x["level"]}
+    optimal_path = paths.find {|path| tree.get_delta([0,-1,-1,-1], path["node"].ings_state).find {|el| el < 0}.nil? }
+    node = optimal_path["node"]
+    steps = []
+    while !node.parent.nil?
+      steps.push(node.spell)
+      node = node.parent
+    end
+    p steps.reverse.map {|x| x.nil? ? "REST" : x.id}
   end
 
   it "second test" do
@@ -742,7 +758,7 @@ describe "simple" do
     expect(result['path'].map{|spell| spell.link.id}).to eq [79, 79, 79, 78, 79, 80, 81, 80, 81, 80, 80]
   end
   
-  fit "spell tree test" do
+  it "spell tree test" do
     subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
@@ -753,8 +769,10 @@ describe "simple" do
       subject.add_spell({'id' => temporary_id,'ings' => learn_ings,'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => "LEARN"})
       temporary_id += 1
     end
-    tree = CodingGame::Simulation::SpellTree.new
-    subject.build_tree(tree.root)
-
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    tree.states_history.each do |key, value|
+      p "#{key} - #{value.level}"
+    end
   end
 end

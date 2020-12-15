@@ -2,9 +2,8 @@
 
 module CodingGame
     class Simulation
-        attr_accessor :spells, :needed_spells, :states_history
+        attr_accessor :spells, :needed_spells
         def initialize()
-            @states_history = []
             @spells = []
             @needed_spells = []
             # add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
@@ -19,24 +18,24 @@ module CodingGame
             # end
         end
 
-        class Brew
-            attr_accessor :id, :type, :ings
+        # class Brew
+        #     attr_accessor :id, :type, :ings
 
-            def initialize(id, ings)
-                @id = id
-                @ings = ings
-                @type = 'BREW'
-            end
-        end
+        #     def initialize(id, ings)
+        #         @id = id
+        #         @ings = ings
+        #         @type = 'BREW'
+        #     end
+        # end
 
-        class Action
-            attr_accessor :type, :link
+        # class Action
+        #     attr_accessor :type, :link
 
-            def initialize(type, link = nil)
-                @type = type
-                @link = link
-            end
-        end
+        #     def initialize(type, link = nil)
+        #         @type = type
+        #         @link = link
+        #     end
+        # end
 
         class Spell
             attr_accessor :id, :learn_id, :ings, :tome_index, :tax_count, :castable, :repeatable, :active, :type
@@ -49,46 +48,70 @@ module CodingGame
             end
         end
 
-        def get_delta *args
-            delta = [0,0,0,0]
-            args.each do |arg_arr|
-                arg_arr.each_with_index do |ing, idx|
-                    delta[idx] += ing
-                end
-            end
-            delta
-        end
-        def get_possible_spells node
-            possible_spells = []
-            @spells.each do |spell|
-                delta = get_delta(node.ings_state, spell.ings)
-                if delta.find {|x| x < 0}.nil? && delta.sum <= 10
-                    possible_spells.push({"spell" => spell, "state_ings" => delta})
-                end
-            end
-            possible_spells
-        end
-        def need_rest node, possible_spell_id
-            node.used_spells.map { |x| x["id"] == possible_spell_id }
-        end
-        def build_tree node
-            get_possible_spells(node).each do |possible_spell|
-                if !states_history.include? possible_spell["state_ings"]
-                    parent = node
-                    if need_rest node, possible_spell["spell"].id
-                        parent = SpellTree::Node.new nil, node, node.ings_state
-                        parent.used_spells = []
-                    end
-                    new_node = SpellTree::Node.new possible_spell, parent, possible_spell["state_ings"]
-                    @states_history.push(possible_spell["state_ings"])
-                    build_tree new_node
-                end
-            end 
-        end
         class SpellTree
-            attr_reader :root
-            def initialize
+            attr_reader :root, :spells, :states_history
+            def initialize spells
                 @root = Node.new nil, nil, [0,0,0,0]
+                @spells = spells
+                @states_history = {}
+            end
+            def build_tree node
+                get_possible_spells(node).each do |possible_spell|
+                    if @states_history[possible_spell["state_ings"].to_s].nil?
+                        new_node = add_node node, possible_spell
+                        build_tree new_node
+                    elsif node.level + 1 < @states_history[possible_spell["state_ings"].to_s].level
+                        @states_history[possible_spell["state_ings"].to_s].parent.children = @states_history[possible_spell["state_ings"].to_s].parent.children.reject { |child| child.spell && child.spell.id ==  @states_history[possible_spell["state_ings"].to_s].spell.id }
+                        clear_history @states_history[possible_spell["state_ings"].to_s]
+                        new_node = add_node node, possible_spell
+                        build_tree new_node
+                    end
+                end
+            end
+            def add_node parent_node, possible_spell
+                parent = parent_node
+                if need_rest parent_node, possible_spell["spell"].id
+                    parent = SpellTree::Node.new nil, parent_node, parent_node.ings_state
+                    parent_node.children.push(parent)
+                    parent.used_spells = []
+                end
+                new_node = SpellTree::Node.new possible_spell["spell"], parent, possible_spell["state_ings"]
+                parent.children.push(new_node)
+                @states_history[possible_spell["state_ings"].to_s] = new_node
+                new_node
+            end
+            def get_delta *args
+                delta = [0,0,0,0]
+                args.each do |arg_arr|
+                    arg_arr.each_with_index do |ing, idx|
+                        delta[idx] += ing
+                    end
+                end
+                delta
+            end
+            def get_possible_spells node
+                return [] if node.level > 9
+                possible_spells = []
+                @spells.each do |spell|
+                    delta = get_delta(node.ings_state, spell.ings)
+                    if delta.find {|x| x < 0}.nil? && delta.sum <= 10
+                        possible_spells.push({"spell" => spell, "state_ings" => delta})
+                    end
+                end
+                possible_spells
+            end
+            def need_rest node, possible_spell_id
+                tmp = node.used_spells.find { |x| x.id == possible_spell_id }
+                if node.level == 0
+                    #p tmp
+                end
+                tmp
+            end
+            def clear_history removed_node
+                @states_history.delete(removed_node.ings_state.to_s)
+                removed_node.children.each do |removed_child|
+                    clear_history removed_child
+                end
             end
             class Node
                 attr_accessor :parent, :children, :spell, :ings_state, :level, :used_spells
@@ -96,6 +119,7 @@ module CodingGame
                     @parent = parent
                     @spell = spell
                     @ings_state = ings_state
+                    @children = []
                     if parent.nil?
                         @level = 0
                         @used_spells = []
@@ -104,6 +128,7 @@ module CodingGame
                         @used_spells = parent.used_spells.clone
                         @used_spells.push(spell)
                     end
+                    #p @level
                 end
             end
         end
