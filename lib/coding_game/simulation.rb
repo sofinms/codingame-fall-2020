@@ -2,11 +2,21 @@
 
 module CodingGame
     class Simulation
-        attr_accessor :spells, :needed_spells
-        
+        attr_accessor :spells, :needed_spells, :states_history
         def initialize()
+            @states_history = []
             @spells = []
             @needed_spells = []
+            # add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+            # add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+            # add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+            # add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+            # temporary_id = 82
+            # all_learns = [[-3, 0, 0, 1],[3, -1, 0, 0],[1, 1, 0, 0],[0, 0, 1, 0],[3, 0, 0, 0],[2, 3, -2, 0],[2, 1, -2, 1],[3, 0, 1, -1],[3, -2, 1, 0],[2, -3, 2, 0],[2, 2, 0, -1],[-4, 0, 2, 0],[2, 1, 0, 0],[4, 0, 0, 0],[0, 0, 0, 1],[0, 2, 0, 0],[1, 0, 1, 0],[-2, 0, 1, 0],[-1, -1, 0, 1],[0, 2, -1, 0],[2, -2, 0, 1],[-3, 1, 1, 0],[0, 2, -2, 1],[1, -3, 1, 1],[0, 3, 0, -1],[0, -3, 0, 2],[1, 1, 1, -1],[1, 2, -1, 0],[4, 1, -1, 0],[-5, 0, 0, 2],[-4, 0, 1, 1],[0, 3, 2, -2],[1, 1, 3, -2],[-5, 0, 3, 0],[-2, 0, -1, 2],[0, 0, -3, 3],[0, -3, 3, 0],[-3, 3, 0, 0],[-2, 2, 0, 0],[0, 0, -2, 2],[0, -2, 2, 0],[0, 0, 2, -1]]
+            # all_learns.each do |learn_ings|
+            #     add_spell({'id' => temporary_id,'ings' => learn_ings,'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => "LEARN"})
+            #     temporary_id += 1
+            # end
         end
 
         class Brew
@@ -39,255 +49,63 @@ module CodingGame
             end
         end
 
-        class Bot
-            def initialize spells
-                @recursion_level = 0
-                @spells = spells
-                @needed_spells = {}
-                @depricated = []
-            end
-
-            def find_diff_ings i1, i2
-                r = []
-                i1.each_with_index do |v,k|
-                    r.push(v-i2[k])
+        def get_delta *args
+            delta = [0,0,0,0]
+            args.each do |arg_arr|
+                arg_arr.each_with_index do |ing, idx|
+                    delta[idx] += ing
                 end
-                r
             end
-
-            def self.find_sum_ings i1, i2
-                r = []
-                i1.each_with_index do |v,k|
-                    r.push(v+i2[k])
+            delta
+        end
+        def get_possible_spells node
+            possible_spells = []
+            @spells.each do |spell|
+                delta = get_delta(node.ings_state, spell.ings)
+                if delta.find {|x| x < 0}.nil? && delta.sum <= 10
+                    possible_spells.push({"spell" => spell, "state_ings" => delta})
                 end
-                r
             end
-
-            def get_needed_spells idx
-                @needed_spells[idx]
-            end
-
-            def get_delta *args
-                delta = [0,0,0,0]
-                args.each do |arg_arr|
-                    arg_arr.each_with_index do |ing, idx|
-                        delta[idx] += ing
+            possible_spells
+        end
+        def need_rest node, possible_spell_id
+            node.used_spells.map { |x| x["id"] == possible_spell_id }
+        end
+        def build_tree node
+            get_possible_spells(node).each do |possible_spell|
+                if !states_history.include? possible_spell["state_ings"]
+                    parent = node
+                    if need_rest node, possible_spell["spell"].id
+                        parent = SpellTree::Node.new nil, node, node.ings_state
+                        parent.used_spells = []
                     end
+                    new_node = SpellTree::Node.new possible_spell, parent, possible_spell["state_ings"]
+                    @states_history.push(possible_spell["state_ings"])
+                    build_tree new_node
                 end
-                delta
+            end 
+        end
+        class SpellTree
+            attr_reader :root
+            def initialize
+                @root = Node.new nil, nil, [0,0,0,0]
             end
-
-            def get_storage_without_other_minuses storage, ing
-                r = []
-                storage.each_with_index do |value, key|
-                    if value < 0 && key != ing
-                        value = 0
-                    end
-                    r.push value
-                end
-                r
-            end
-
-            def is_ingredients_in_history history, ings
-                !history.find { |state| state == ings }.nil?
-            end
-
-            def get_storage_other_minuses storage, ing
-                r = []
-                storage.each_with_index do |value, key|
-                    if value < 0 && key != ing
-                        value = value
+            class Node
+                attr_accessor :parent, :children, :spell, :ings_state, :level, :used_spells
+                def initialize spell, parent, ings_state
+                    @parent = parent
+                    @spell = spell
+                    @ings_state = ings_state
+                    if parent.nil?
+                        @level = 0
+                        @used_spells = []
                     else
-                        value = 0
+                        @level = parent.level + 1
+                        @used_spells = parent.used_spells.clone
+                        @used_spells.push(spell)
                     end
-                    r.push value
                 end
-                r
             end
-
-            def find_path delta_inventory, used_spells, needed_spells, prev_ings
-                @depricated = []
-                @depricated_2 = []
-            	@needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}
-            	@needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}
-            	@needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}
-            	@needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}
-            	@start_time = Time.now
-            	return find_optimal_path delta_inventory, used_spells, prev_ings, {}
-            end
-
-            def find_optimal_path delta_inventory, used_spells, prev_ings, level = 1, level_2 = 1, prev_path_count = 0, levels_max_deeps
-        		# tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
-        		# STDERR.puts tabs + "@#{@recursion_level}\n"
-        		# STDERR.puts tabs + "delta_inventory = #{delta_inventory}\n"
-
-                if level > 1 || level_2 > 1
-                    # p @levels_max_deeps
-                    # p delta_inventory
-                    # p used_spells
-                    # p level_2
-                    # p level
-                    # p '-----'
-                end
-
-                if level > 9
-                    return nil
-                end
-
-                if level_2 > 5
-                    return nil
-                end
-
-        		
-        		need_ing = delta_inventory.index { |ing| ing < 0 }
-        		if need_ing.nil?
-        			info = {
-        				'path' => [],
-        				'ingredients' => delta_inventory,
-        				'used_spells' => used_spells.clone,
-                        'ings_path' => []
-        			}
-        			return info
-        		end
-                
-                if levels_max_deeps["#{level_2}-#{level}"] && levels_max_deeps["#{level_2}-#{level}"] <= prev_path_count + 1
-                    return nil
-                end
-        		needed_spells = get_needed_spells need_ing
-        		needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
-                
-        		# STDERR.puts tabs + "used_spells = #{used_spells}\n"
-        		# STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e.id}}\n"
-        		all_paths = []
-        		negative_ings_values = []
-        		positive_ings = []
-        		delta_inventory.each_with_index do |value, key|
-        			negative_ings_values.push(value < 0 ? value : 0)
-        			positive_ings.push(need_ing == key || value < 0 ? 0 : value)
-        		end
-                if level_2 == 1 && level == 1
-                    needed_spells = needed_spells.reverse
-                end
-        		needed_spells.each do |needed_spell|
-        			new_used_spells = used_spells.clone
-        			new_used_spells.push needed_spell.id
-        			spell_positive_ings = []
-        			spell_negative_ings = []
-                    possible_ings = []
-        			needed_spell.ings.each_with_index do |x, key|
-                        positive_val = x > 0 ? x : 0
-                        negative_val = x > 0 ? 0 : x
-                        if delta_inventory[key] > 0 && prev_ings[key] < 0 && positive_val > 0
-                            possible_ings.push(positive_val)
-                            positive_val = 0
-                        else
-                            possible_ings.push(0)
-                        end
-                        spell_negative_ings.push(negative_val)
-                        spell_positive_ings.push(positive_val)
-        			end
-                    n_d = get_delta(spell_negative_ings, positive_ings, possible_ings)
-                    next if @depricated.include?(n_d + [needed_spell])
-                    # p level
-                    # p level_2
-                    # p '-------'
-
-        			result_info = find_optimal_path(n_d, new_used_spells, spell_negative_ings, level+1, level_2, prev_path_count + 1, levels_max_deeps.clone)
-        			if result_info.nil?
-                        @depricated.push(n_d + [needed_spell])
-                    end
-                    # if result_info.nil?
-                    #     p n_d
-                    #     p '------'
-                    # end
-                    next if result_info.nil?
-
-                    type = 'CAST'
-                    action = Simulation::Action.new(type, needed_spell)
-        			all_paths.push({
-        				'path' => result_info["path"] + [action],
-        				'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
-        				'used_spells' => result_info['used_spells'],
-        				# 'level' => level,
-                        'ings_path' => result_info["ings_path"] + [get_delta(result_info["ingredients"], spell_positive_ings)]
-        			})
-        			# if @recursion_level == 1
-        	  #           ending = Time.now
-        	  #           elapsed = ending - @start_time
-        	  #           STDERR.puts "Find path elapsed = #{elapsed}"
-        	  #           STDERR.puts "all_paths = #{all_paths.count}"
-        	  #           STDERR.puts "level = #{level}"
-        	  #           STDERR.puts "path_count = #{(result_info["path"] + [needed_spell]).count}"
-        	  #       end
-        		end
-        		# all_paths = all_paths_filter(all_paths)
-
-        		optimal_path_info = nil
-        		all_paths.each do |path_info|
-                    if level_2 == 1 && level == 1
-                        p path_info["path"].map{|spell| spell.link.id}
-                    end
-                    if level_2 == 1 && level == 1
-                        # p @levels_max_deeps
-                    end
-                    # p path_info['used_spells']
-                    # p path_info["ingredients"]
-                    # p "level = #{level} level_2 = #{level_2}"
-                    # p '----------------------'
-                    next if @depricated_2.include?(path_info["ingredients"] + path_info['used_spells'])
-        			#STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-        			result_info = find_optimal_path path_info["ingredients"], [], prev_ings, 1, level_2 + 1, path_info["path"].count, levels_max_deeps.clone
-                    if result_info.nil?
-                        @depricated_2.push(path_info["ingredients"] + path_info['used_spells'])
-                    end
-        			next if result_info.nil?
-        			result_path = path_info["path"] + result_info["path"]
-                    if level_2 == 1 && level == 1
-                        p levels_max_deeps
-                    end
-                    if levels_max_deeps["#{level_2}-#{level}"].nil?
-                        levels_max_deeps["#{level_2}-#{level}"] = result_path.count
-                    else
-                        if levels_max_deeps["#{level_2}-#{level}"] > result_path.count
-                            levels_max_deeps["#{level_2}-#{level}"] = result_path.count
-                        end
-                    end
-                    
-                    if level_2 == 1 && level == 1
-                        p result_path.map{|spell| spell.link.id}
-                        p levels_max_deeps
-                        p '--------'
-                    end
-                
-                    result_ings_path = path_info["ings_path"] + result_info["ings_path"]
-        			if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
-        				optimal_path_info = {
-        					"path" => result_path,
-        					"ingredients" => result_info["ingredients"],
-        					"used_spells" => result_info['used_spells'].clone,
-        					# 'level' => result_info["level"],
-                            'ings_path' => result_ings_path
-        				}
-        			end
-        		end
-        		return optimal_path_info
-        	end
-
-        	def all_paths_filter all_paths
-        		return all_paths if all_paths.count < 2
-        		all_paths = all_paths.sort_by{|_path| _path['path'].count}
-        		index = 0
-        		while index < all_paths.count - 1
-        			((index+1)..all_paths.count - 1).each do |compare_index|
-        				next if all_paths[compare_index]['rejected'] == true
-        				if all_paths[compare_index]['ingredients'][0] <= all_paths[index]['ingredients'][0] && all_paths[compare_index]['ingredients'][1] <= all_paths[index]['ingredients'][1] && all_paths[compare_index]['ingredients'][2] <= all_paths[index]['ingredients'][2] && all_paths[compare_index]['ingredients'][3] <= all_paths[index]['ingredients'][3]
-        					all_paths[compare_index]['rejected'] = true
-        				end
-        			end
-        			index += 1
-        		end
-        		all_paths.reject{|_path| _path['rejected']}
-        	end
         end
 
         def add_spell spell
