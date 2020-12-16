@@ -5,7 +5,7 @@ describe "simple" do
     CodingGame::Simulation.new
   }
 
-  fit "first test" do
+  it "first test" do
     subject.add_spell({
           'id' => 78,
           'ings' => [2, 0, 0, 0],
@@ -98,24 +98,8 @@ describe "simple" do
     })
     tree = CodingGame::Simulation::SpellTree.new subject.spells
     tree.build_tree(tree.root)
-    #brew = CodingGame::Simulation::Brew.new(999,[-3,-1,-1,-1])
-    #expect(result['path'].map{|spell| spell.link.id}).to eq [33, 6]
-    paths = []
-    tree.states_history.each do |state, value|
-      paths.push({
-        'level' => value.level,
-        'node' => value
-      })
-    end
-    paths = paths.sort_by{|x| x["level"]}
-    optimal_path = paths.find {|path| tree.get_delta([0,-1,-1,-1], path["node"].ings_state).find {|el| el < 0}.nil? }
-    node = optimal_path["node"]
-    steps = []
-    while !node.parent.nil?
-      steps.push(node.spell)
-      node = node.parent
-    end
-    p steps.reverse.map {|x| x.nil? ? "REST" : x.id}
+    path = subject.get_shortest_brew_path(tree, [0,-1,-1,-1], [3,0,0,0])
+    expect(path).to eq [78, 33, 6]
   end
 
   it "second test" do
@@ -164,9 +148,10 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [0,0,-2,-2], [3,0,0,0])
+    expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path).to eq true
   end
 
   it "third test" do
@@ -233,9 +218,10 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [5, 5, 4, 4]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [0,0,-2,-2], [3,0,0,0])
+    expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path).to eq true
   end
 
   it "fourth test" do
@@ -329,9 +315,10 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([3, -2, -1, -1], [], subject.needed_spells, [0,-2,-1,-1])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [9, 8, 6, 2]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [0,-2,-1,-1], [3,0,0,0])
+    expect(path).to eq [9, 8, 6, 2]
   end
   it "fifth test" do
     subject.add_spell({
@@ -424,9 +411,10 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([3, 0, -2, -2], [], subject.needed_spells, [0,0,-2,-2])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [6, 10, 4, 6, 4]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [0,0,-2,-2], [3,0,0,0])
+    expect([[6, 10, 4, 6, 4], [6, 4, 6, 4, 10]].include? path).to eq true
   end
 
   it "6 test" do
@@ -520,9 +508,10 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([1,0,-3,-2], [], subject.needed_spells, [0,0,-3,-2])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [79, 80, 78, 79, 80, 79, 80, 39, 32, 80, 39]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [0,0,-3,-2], [3,0,0,0])
+    expect(path).to eq [38, 80, 80, 39, 32, 80, 39, 32, 39]
   end
 
   it "7 test" do
@@ -616,9 +605,10 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([0,-2,-2,0], [], subject.needed_spells, [-2,-2,0,0])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [78, 38, 78, 38, 40]
+    tree = CodingGame::Simulation::SpellTree.new subject.spells
+    tree.build_tree(tree.root)
+    path = subject.get_shortest_brew_path(tree, [-2,-2,0,0], [3,0,0,0])
+    expect(path).to eq [38, 78]
   end
   it "8 test" do
     subject.add_spell({
@@ -711,68 +701,9 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([2,-1,-1,-3], [], subject.needed_spells, [-1,-1,-1,-3])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [79, 4, 30, 14, 14]
-  end
-
-  it "9 test" do
-    subject.add_spell({
-          'id' => 78,
-          'ings' => [2, 0, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 79,
-          'ings' => [-1, 1, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 80,
-          'ings' => [0, -1, 1, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 81,
-          'ings' => [0, 0, -1, 1],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    bot = CodingGame::Simulation::Bot.new(subject.spells)
-    result = bot.find_path([3,0,-2,-2], [], subject.needed_spells, [-3,-1,-1,-1])
-    expect(result['path'].map{|spell| spell.link.id}).to eq [79, 79, 79, 78, 79, 80, 81, 80, 81, 80, 80]
-  end
-  
-  it "spell tree test" do
-    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
-    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
-    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
-    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
-    temporary_id = 82
-    all_learns = [[-3, 0, 0, 1],[3, -1, 0, 0],[1, 1, 0, 0],[0, 0, 1, 0],[3, 0, 0, 0],[2, 3, -2, 0]]#,[2, 1, -2, 1],[3, 0, 1, -1],[3, -2, 1, 0],[2, -3, 2, 0],[2, 2, 0, -1],[-4, 0, 2, 0],[2, 1, 0, 0],[4, 0, 0, 0],[0, 0, 0, 1],[0, 2, 0, 0],[1, 0, 1, 0],[-2, 0, 1, 0],[-1, -1, 0, 1],[0, 2, -1, 0],[2, -2, 0, 1],[-3, 1, 1, 0],[0, 2, -2, 1],[1, -3, 1, 1],[0, 3, 0, -1],[0, -3, 0, 2],[1, 1, 1, -1],[1, 2, -1, 0],[4, 1, -1, 0],[-5, 0, 0, 2],[-4, 0, 1, 1],[0, 3, 2, -2],[1, 1, 3, -2],[-5, 0, 3, 0],[-2, 0, -1, 2],[0, 0, -3, 3],[0, -3, 3, 0],[-3, 3, 0, 0],[-2, 2, 0, 0],[0, 0, -2, 2],[0, -2, 2, 0],[0, 0, 2, -1]]
-    all_learns.each do |learn_ings|
-      subject.add_spell({'id' => temporary_id,'ings' => learn_ings,'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => "LEARN"})
-      temporary_id += 1
-    end
     tree = CodingGame::Simulation::SpellTree.new subject.spells
     tree.build_tree(tree.root)
-    tree.states_history.each do |key, value|
-      p "#{key} - #{value.level}"
-    end
+    path = subject.get_shortest_brew_path(tree, [-1,-1,-1,-3], [3,0,0,0])
+    expect([[79, 4, 30, 14, 14], [79, 14, 13, 30, 14]].include? path).to eq true
   end
 end

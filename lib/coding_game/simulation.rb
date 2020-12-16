@@ -17,6 +17,56 @@ module CodingGame
             #     temporary_id += 1
             # end
         end
+        def get_delta *args
+            delta = [0,0,0,0]
+            args.each do |arg_arr|
+                arg_arr.each_with_index do |ing, idx|
+                    delta[idx] += ing
+                end
+            end
+            delta
+        end
+        def can_brew spells, cur_ings
+            spells.each do |spell_ings|
+                cur_ings = get_delta(cur_ings, spell_ings)
+                if !cur_ings.find{|x| x < 0}.nil?
+                    return false
+                end
+            end
+            true
+        end
+        def get_shortest_brew_path tree, brew_ings, cur_ings
+            paths = []
+            tree.states_history.each do |state, value|
+              paths.push({
+                'level' => value.level,
+                'node' => value
+              })
+            end
+            paths = paths.sort_by{|x| x["level"]}
+            optimal_steps = []
+            optimal_paths = paths.select {|path| tree.get_delta(brew_ings, path["node"].ings_state).find {|el| el < 0}.nil? }.first(3).each do |optimal_path|
+                node = optimal_path["node"]
+                steps = []
+                first_iteration = true
+                all_spells_ings = [brew_ings]
+                while !node.parent.nil?
+                    if node.spell
+                        steps.push(node.spell.id)
+                        all_spells_ings.unshift(node.spell.ings)
+                        my_inv = cur_ings.clone
+                        if can_brew(all_spells_ings, my_inv)
+                            break
+                        end
+                    end
+                    node = node.parent
+                end
+                if optimal_steps.count == 0 || optimal_steps.count > steps.count
+                    optimal_steps = steps.clone
+                end
+            end
+            optimal_steps.reverse
+        end
 
         # class Brew
         #     attr_accessor :id, :type, :ings
@@ -47,7 +97,6 @@ module CodingGame
                 @active = true
             end
         end
-
         class SpellTree
             attr_reader :root, :spells, :states_history
             def initialize spells
@@ -90,7 +139,7 @@ module CodingGame
                 delta
             end
             def get_possible_spells node
-                return [] if node.level > 9
+                return [] if node.level > 11
                 possible_spells = []
                 @spells.each do |spell|
                     delta = get_delta(node.ings_state, spell.ings)
