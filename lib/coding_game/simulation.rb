@@ -78,15 +78,6 @@ module CodingGame
         #     end
         # end
 
-        # class Action
-        #     attr_accessor :type, :link
-
-        #     def initialize(type, link = nil)
-        #         @type = type
-        #         @link = link
-        #     end
-        # end
-
         class Spell
             attr_accessor :id, :learn_id, :ings, :tome_index, :tax_count, :castable, :repeatable, :active, :type
 
@@ -151,9 +142,6 @@ module CodingGame
             end
             def need_rest node, possible_spell_id
                 tmp = node.used_spells.find { |x| x.id == possible_spell_id }
-                if node.level == 0
-                    #p tmp
-                end
                 tmp
             end
             def clear_history removed_node
@@ -177,7 +165,6 @@ module CodingGame
                         @used_spells = parent.used_spells.clone
                         @used_spells.push(spell)
                     end
-                    #p @level
                 end
             end
         end
