@@ -8,6 +8,11 @@ module CodingGame
             @needed_spells = []
             @tree = SpellTree.new @spells
         end
+        def disactivate_spells
+            @spells.each do |spell|
+                spell.active = false
+            end
+        end
         def build_tree
             @tree.build_tree(@tree.root)
         end
@@ -29,7 +34,7 @@ module CodingGame
             end
             true
         end
-        def get_shortest_brew_path brew_ings, cur_ings
+        def get_shortest_path brew_ings, cur_ings
             paths = []
             @tree.states_history.each do |state, value|
               paths.push({
