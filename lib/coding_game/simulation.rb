@@ -58,7 +58,7 @@ module CodingGame
             end
             paths = paths.sort_by{|x| x["level"]}
             optimal_steps = []
-            optimal_paths = paths.select {|path| @tree.get_delta(brew_ings, path["node"].ings_state).find {|el| el < 0}.nil? }.first(3).each do |optimal_path|
+            optimal_paths = paths.select {|path| @tree.get_delta(brew_ings, path["node"].ings_state).find {|el| el < 0}.nil? }.first(5).each do |optimal_path|
                 node = optimal_path["node"]
                 steps = []
                 first_iteration = true
