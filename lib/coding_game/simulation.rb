@@ -34,6 +34,20 @@ module CodingGame
             end
             true
         end
+
+        def get_all_learns
+            learns = []
+            @tree.states_history.each do |state, node|
+                if node.spell && node.spell.type == 'LEARN'
+                    learns.push node.spell
+                end
+            end
+            learns.uniq
+        end
+
+        def remove_learn learn_id
+        end
+        
         def get_shortest_path brew_ings, cur_ings
             paths = []
             @tree.states_history.each do |state, value|
