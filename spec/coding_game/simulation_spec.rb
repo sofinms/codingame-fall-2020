@@ -5,7 +5,7 @@ describe "simple" do
     CodingGame::Simulation.new
   }
 
-  it "first test" do
+  fit "first test" do
     subject.add_spell({
           'id' => 78,
           'ings' => [2, 0, 0, 0],
@@ -96,10 +96,9 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    tree = CodingGame::Simulation::SpellTree.new subject.spells
-    tree.build_tree(tree.root)
-    path = subject.get_shortest_brew_path(tree, [0,-1,-1,-1], [3,0,0,0])
-    expect(path).to eq [78, 33, 6]
+    subject.build_tree
+    path = subject.get_shortest_brew_path([0,-1,-1,-1], [3,0,0,0])
+    expect(path.map{|x| x.id}).to eq [78, 33, 6]
   end
 
   it "second test" do
