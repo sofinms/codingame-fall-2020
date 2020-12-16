@@ -47,7 +47,7 @@ module CodingGame
 
         def remove_learn learn_id
         end
-        
+
         def get_shortest_path brew_ings, cur_ings
             paths = []
             @tree.states_history.each do |state, value|
@@ -112,12 +112,16 @@ module CodingGame
                 get_possible_spells(node).each do |possible_spell|
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node node, possible_spell
+                        @states_history[possible_spell["state_ings"].to_s] = new_node
                         build_tree new_node
                     elsif node.level + 1 < @states_history[possible_spell["state_ings"].to_s].level
-                        @states_history[possible_spell["state_ings"].to_s].parent.children = @states_history[possible_spell["state_ings"].to_s].parent.children.reject { |child| child.spell && child.spell.id ==  @states_history[possible_spell["state_ings"].to_s].spell.id }
+                        # @states_history[possible_spell["state_ings"].to_s].parent.children = @states_history[possible_spell["state_ings"].to_s].parent.children.reject { |child| child.spell && child.spell.id ==  @states_history[possible_spell["state_ings"].to_s].spell.id }
                         clear_history @states_history[possible_spell["state_ings"].to_s]
                         new_node = add_node node, possible_spell
+                        @states_history[possible_spell["state_ings"].to_s] = new_node
                         build_tree new_node
+                    else
+                        new_node = add_node node, possible_spell
                     end
                 end
             end
@@ -130,7 +134,6 @@ module CodingGame
                 end
                 new_node = SpellTree::Node.new possible_spell["spell"], parent, possible_spell["state_ings"]
                 parent.children.push(new_node)
-                @states_history[possible_spell["state_ings"].to_s] = new_node
                 new_node
             end
             def get_delta *args
