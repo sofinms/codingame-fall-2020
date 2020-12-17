@@ -97,11 +97,12 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,-1,-1,-1], [3,0,0,0])
+    path = subject.get_shortest_path([0,-1,-1,-1], current_ings)
     expect(path.map{|x| x.id}).to eq [78, 33, 6]
   end
 
@@ -151,11 +152,12 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
+    path = subject.get_shortest_path([0,0,-2,-2], current_ings)
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
 
@@ -223,11 +225,12 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
+    path = subject.get_shortest_path([0,0,-2,-2], current_ings)
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
 
@@ -322,13 +325,13 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,-2,-1,-1], [3,0,0,0])
+    path = subject.get_shortest_path([0,-2,-1,-1], current_ings)
     path_spell_ids = path.map{|x| x.id}
-    # p path_spell_ids
     expect([[9, 8, 6, 2], [9, 8, 7, 9], [9, 10, 1, 9]].include? path_spell_ids).to eq true
   end
   it "fifth test" do
@@ -422,11 +425,12 @@ describe "simple" do
       'tax_count' => nil,
       'type' => 'CAST'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
+    path = subject.get_shortest_path([0,0,-2,-2], current_ings)
     expect([[6, 10, 4, 6, 4], [6, 4, 6, 4, 10]].include? path.map{|x| x.id}).to eq true
   end
 
@@ -521,12 +525,13 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([0,0,-3,-2], [3,0,0,0])
-    expect(path.map{|x| x.id}).to eq [38, 80, 80, 39, 32, 80, 39, 32, 39]
+    path = subject.get_shortest_path([0,0,-3,-2], current_ings)
+    expect([[38, 80, 80, 39, 32, 80, 39, 32, 39], [38, 80, 80, 39, 32, 80, 38, 80, 39]].include? path.map{|x| x.id}).to eq true
   end
 
   it "7 test" do
@@ -620,12 +625,13 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([-2,-2,0,0], [3,0,0,0])
-    expect(path.map{|x| x.id}).to eq [38, 78]
+    path = subject.get_shortest_path([-2,-2,0,0], current_ings)
+    expect([[38, 78], [78, 38]].include? path.map{|x| x.id}).to eq true
   end
   it "8 test" do
     subject.add_spell({
@@ -718,11 +724,12 @@ describe "simple" do
         'tax_count' => nil,
         'type' => 'LEARN'
     })
-    subject.build_tree
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    path = subject.get_shortest_path([-1,-1,-1,-3], [3,0,0,0])
-    expect([[79, 4, 30, 14, 14], [79, 14, 13, 30, 14], [14, 4, 30, 79, 14]].include? path.map{|x| x.id}).to eq true
+    path = subject.get_shortest_path([-1,-1,-1,-3], current_ings)
+    expect([[79, 4, 30, 14, 14], [79, 14, 13, 30, 14], [14, 4, 30, 79, 14], [79, 14, 13, 14, 30]].include? path.map{|x| x.id}).to eq true
   end
 end

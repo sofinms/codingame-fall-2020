@@ -16,7 +16,8 @@ module CodingGame
             end
         end
         
-        def build_tree
+        def build_tree ings_state
+            @tree.root.ings_state = ings_state
             @tree.build_tree(@tree.root)
         end
 
@@ -67,6 +68,28 @@ module CodingGame
         end
 
         def get_shortest_path brew_ings, cur_ings
+            path_algorithm2 brew_ings
+            # path_algorithm1 brew_ings, cur_ings
+        end
+
+        def path_algorithm2 brew_ings
+            nodes = []
+
+            @tree.states_history.each do |state, node|
+                nodes.push(node)
+            end
+            nodes = nodes.sort_by{|node| node.steps_with_rest_count}
+            node = nodes.find{|node| @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?}
+            spells = []
+            while !node.parent.nil?
+                spells.push(node.spell)
+                node = node.parent
+            end
+            # p optimal_steps.reverse.map{|spell| spell.id}
+            spells.reverse
+        end
+
+        def path_algorithm1 brew_ings, cur_ings
             nodes = []
             @tree.states_history.each do |state, node|
                 nodes.push(node)
@@ -124,10 +147,10 @@ module CodingGame
             end
         end
         class SpellTree
-            MAX_STEPS_LEVEL = 11
+            MAX_STEPS_LEVEL = 8
             MAX_INGS_COUNT = 10
 
-            attr_reader :root, :spells, :states_history, :counter
+            attr_accessor :root, :spells, :states_history, :counter
 
             def initialize spells
                 @root = Node.new nil, nil, [0,0,0,0]
@@ -137,15 +160,20 @@ module CodingGame
 
             def build_tree parent_node
                 get_possible_spells(parent_node).each do |possible_spell|
+
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node parent_node, possible_spell
+                        parent_node.children.push new_node
                         @states_history[possible_spell["state_ings"].to_s] = new_node
+
+
                         build_tree new_node
                     elsif parent_node.steps_with_rest_count + 1 < @states_history[possible_spell["state_ings"].to_s].steps_with_rest_count
                         history_node = @states_history[possible_spell["state_ings"].to_s]
                         clear_history history_node
                         history_node.children = []       
                         new_node = add_node parent_node, possible_spell
+                        parent_node.children.push new_node
                         @states_history[possible_spell["state_ings"].to_s] = new_node
                         build_tree new_node
                     else
@@ -159,16 +187,14 @@ module CodingGame
                     node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
                     node.used_spells = []
                     node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
-                    
+                    node.used_spells.push node.spell
+                    return node
                 else
                     node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
                     node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
                     node.used_spells = parent_node.used_spells.clone
+                    return node
                 end
-                node.used_spells.push node.spell
-                parent_node.children.push(node)
-                
-                node
             end
 
             def get_delta *args
