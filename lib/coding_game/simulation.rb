@@ -2,6 +2,9 @@
 
 module CodingGame
     class Simulation
+        OPTIMAL_PATHS_COUNT = 4
+
+
         attr_accessor :spells, :needed_spells, :tree
         def initialize()
             @spells = []
@@ -13,9 +16,11 @@ module CodingGame
                 spell.active = false
             end
         end
+        
         def build_tree
             @tree.build_tree(@tree.root)
         end
+
         def get_delta *args
             delta = [0,0,0,0]
             args.each do |arg_arr|
@@ -57,27 +62,44 @@ module CodingGame
               })
             end
             paths = paths.sort_by{|x| x["level"]}
+            optimal_paths = []
+            while optimal_paths.count < OPTIMAL_PATHS_COUNT && paths.count > 0
+                path = paths.shift
+                if @tree.get_delta(brew_ings, path["node"].ings_state).find {|el| el < 0}.nil?
+                    optimal_paths.push path
+                end
+            end
             optimal_steps = []
-            optimal_paths = paths.select {|path| @tree.get_delta(brew_ings, path["node"].ings_state).find {|el| el < 0}.nil? }.first(5).each do |optimal_path|
+            optimal_steps_rests_count = 0
+            optimal_paths.each do |optimal_path|
                 node = optimal_path["node"]
                 steps = []
+                steps_rest = []
                 first_iteration = true
                 all_spells_ings = [brew_ings]
+                rests_count = 0
                 while !node.parent.nil?
                     if node.spell
                         steps.push(node.spell)
+                        steps_rest.push(node.spell.id)
                         all_spells_ings.unshift(node.spell.ings)
                         my_inv = cur_ings.clone
                         if can_brew(all_spells_ings, my_inv)
                             break
                         end
+                    else
+                        rests_count += 1
+
+                        steps_rest.push('rest')
                     end
                     node = node.parent
                 end
-                if optimal_steps.count == 0 || optimal_steps.count > steps.count
+                if optimal_steps.count == 0 || optimal_steps.count > steps.count || (optimal_steps.count == steps.count && optimal_steps_rests_count > rests_count)
                     optimal_steps = steps.clone
+                    optimal_steps_rests_count = rests_count
                 end
             end
+            # p optimal_steps.reverse.map{|spell| spell.id}
             optimal_steps.reverse
         end
 
@@ -102,29 +124,46 @@ module CodingGame
             end
         end
         class SpellTree
-            attr_reader :root, :spells, :states_history
+            MAX_STEPS_LEVEL = 11
+            MAX_INGS_COUNT = 10
+
+            attr_reader :root, :spells, :states_history, :counter
+
             def initialize spells
                 @root = Node.new nil, nil, [0,0,0,0]
                 @spells = spells
                 @states_history = {}
+                @counter = 0
             end
+
             def build_tree node
                 get_possible_spells(node).each do |possible_spell|
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node node, possible_spell
                         @states_history[possible_spell["state_ings"].to_s] = new_node
                         build_tree new_node
+                        @counter += 1
                     elsif node.level + 1 < @states_history[possible_spell["state_ings"].to_s].level
-                        # @states_history[possible_spell["state_ings"].to_s].parent.children = @states_history[possible_spell["state_ings"].to_s].parent.children.reject { |child| child.spell && child.spell.id ==  @states_history[possible_spell["state_ings"].to_s].spell.id }
-                        clear_history @states_history[possible_spell["state_ings"].to_s]
+                        history_node = @states_history[possible_spell["state_ings"].to_s]
+                        # if history_node.ings_state == [9, 1, 0, 0]
+                        # end
+                        # history_node.parent.children = history_node.parent.children.reject { |child| child.spell && child.spell.id ==  history_node.spell.id }
+                        # if history_node.ings_state == [9, 1, 0, 0]
+                            # p @states_history.count
+                        # end
+                        clear_history history_node
+                        history_node.children = []
+                         
                         new_node = add_node node, possible_spell
                         @states_history[possible_spell["state_ings"].to_s] = new_node
                         build_tree new_node
+                        @counter += 1
                     else
-                        new_node = add_node node, possible_spell
+                        # add_node node, possible_spell
                     end
                 end
             end
+
             def add_node parent_node, possible_spell
                 parent = parent_node
                 if need_rest parent_node, possible_spell["spell"].id
@@ -136,6 +175,7 @@ module CodingGame
                 parent.children.push(new_node)
                 new_node
             end
+
             def get_delta *args
                 delta = [0,0,0,0]
                 args.each do |arg_arr|
@@ -145,36 +185,46 @@ module CodingGame
                 end
                 delta
             end
+
             def get_possible_spells node
-                return [] if node.level > 11
+                return [] if node.level > MAX_STEPS_LEVEL
                 possible_spells = []
                 @spells.each do |spell|
                     delta = get_delta(node.ings_state, spell.ings)
-                    if delta.find {|x| x < 0}.nil? && delta.sum <= 10
+                    if delta.find {|x| x < 0}.nil? && delta.sum <= MAX_INGS_COUNT
                         possible_spells.push({"spell" => spell, "state_ings" => delta})
                     end
                 end
                 possible_spells
             end
+
             def need_rest node, possible_spell_id
                 node.used_spells.find { |x| x.id == possible_spell_id }
             end
+
             def clear_history removed_node
                 @states_history.delete(removed_node.ings_state.to_s)
                 removed_node.children.each do |removed_child|
                     clear_history removed_child
                 end
             end
+
             class Node
-                attr_accessor :parent, :children, :spell, :ings_state, :level, :used_spells
+                attr_accessor :parent, :children, :spell, :ings_state, :level, :used_spells, :name
                 def initialize spell, parent, ings_state
                     @parent = parent
                     @spell = spell
                     @ings_state = ings_state
                     @children = []
+                    if @spell
+                        @name = "#{@spell.id} #{@ings_state}"
+                    else
+                        @name = 'REST'
+                    end
                     if parent.nil?
                         @level = 0
                         @used_spells = []
+                        @name = '*ROOT*'
                     else
                         @level = parent.level + 1
                         @used_spells = parent.used_spells.clone

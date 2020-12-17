@@ -1,4 +1,5 @@
 require 'coding_game/simulation'
+require "tree_support"
 
 describe "simple" do
   subject {
@@ -97,6 +98,9 @@ describe "simple" do
         'type' => 'LEARN'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,-1,-1,-1], [3,0,0,0])
     expect(path.map{|x| x.id}).to eq [78, 33, 6]
   end
@@ -148,6 +152,9 @@ describe "simple" do
       'type' => 'CAST'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
@@ -217,11 +224,14 @@ describe "simple" do
       'type' => 'CAST'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
 
-  fit "fourth test" do
+  it "fourth test" do
     subject.add_spell({
       'id' => 1,
       'ings' => [2, 0, 0, 0],
@@ -313,8 +323,13 @@ describe "simple" do
       'type' => 'CAST'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,-2,-1,-1], [3,0,0,0])
-    expect([[9, 8, 6, 2], [9, 8, 7, 9]].include? path.map{|x| x.id}).to eq true
+    path_spell_ids = path.map{|x| x.id}
+    # p path_spell_ids
+    expect([[9, 8, 6, 2], [9, 8, 7, 9], [9, 10, 1, 9]].include? path_spell_ids).to eq true
   end
   it "fifth test" do
     subject.add_spell({
@@ -408,6 +423,9 @@ describe "simple" do
       'type' => 'CAST'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,0,-2,-2], [3,0,0,0])
     expect([[6, 10, 4, 6, 4], [6, 4, 6, 4, 10]].include? path.map{|x| x.id}).to eq true
   end
@@ -504,6 +522,9 @@ describe "simple" do
         'type' => 'LEARN'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([0,0,-3,-2], [3,0,0,0])
     expect(path.map{|x| x.id}).to eq [38, 80, 80, 39, 32, 80, 39, 32, 39]
   end
@@ -600,6 +621,9 @@ describe "simple" do
         'type' => 'LEARN'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([-2,-2,0,0], [3,0,0,0])
     expect(path.map{|x| x.id}).to eq [38, 78]
   end
@@ -695,7 +719,10 @@ describe "simple" do
         'type' => 'LEARN'
     })
     subject.build_tree
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
     path = subject.get_shortest_path([-1,-1,-1,-3], [3,0,0,0])
-    expect([[79, 4, 30, 14, 14], [79, 14, 13, 30, 14]].include? path.map{|x| x.id}).to eq true
+    expect([[79, 4, 30, 14, 14], [79, 14, 13, 30, 14], [14, 4, 30, 79, 14]].include? path.map{|x| x.id}).to eq true
   end
 end
