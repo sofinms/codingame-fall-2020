@@ -7,96 +7,16 @@ describe "simple" do
   }
 
   it "first test" do
-    subject.add_spell({
-          'id' => 78,
-          'ings' => [2, 0, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 79,
-          'ings' => [-1, 1, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 80,
-          'ings' => [0, -1, 1, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 81,
-          'ings' => [0, 0, -1, 1],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 19,
-          'ings' => [0, 2, -1, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 32,
-          'ings' => [1, 1, 3, -2],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 26,
-          'ings' => [1, 1, 1, -1],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 39,
-          'ings' => [0, 0, -2, 2],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-        'id' => 33,
-        'ings' => [-5, 0, 3, 0],
-        'castable' => true,
-        'repeatable' => false,
-        'tome_index' => nil,
-        'tax_count' => nil,
-        'type' => 'LEARN'
-    })
-    subject.add_spell({
-        'id' => 6,
-        'ings' => [2, 1, -2, 1],
-        'castable' => true,
-        'repeatable' => false,
-        'tome_index' => nil,
-        'tax_count' => nil,
-        'type' => 'LEARN'
-    })
+    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 19,'ings' => [0, 2, -1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 32,'ings' => [1, 1, 3, -2],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 26,'ings' => [1, 1, 1, -1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 39,'ings' => [0, 0, -2, 2],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 33,'ings' => [-5, 0, 3, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 6,'ings' => [2, 1, -2, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
     current_ings = [3,0,0,0]
     subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
@@ -535,96 +455,16 @@ describe "simple" do
   end
 
   it "7 test" do
-    subject.add_spell({
-          'id' => 78,
-          'ings' => [2, 0, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 79,
-          'ings' => [-1, 1, 0, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 80,
-          'ings' => [0, -1, 1, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 81,
-          'ings' => [0, 0, -1, 1],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'CAST'
-      })
-    subject.add_spell({
-          'id' => 23,
-          'ings' => [1, -3, 1, 1],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 40,
-          'ings' => [0, -2, 2, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 31,
-          'ings' => [0, 3, 2, -2],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-          'id' => 36,
-          'ings' => [0, -3, 3, 0],
-          'castable' => true,
-          'repeatable' => false,
-          'tome_index' => nil,
-          'tax_count' => nil,
-          'type' => 'LEARN'
-      })
-    subject.add_spell({
-        'id' => 10,
-        'ings' => [2, 2, 0, -1],
-        'castable' => true,
-        'repeatable' => false,
-        'tome_index' => nil,
-        'tax_count' => nil,
-        'type' => 'LEARN'
-    })
-    subject.add_spell({
-        'id' => 38,
-        'ings' => [-2, 2, 0, 0],
-        'castable' => true,
-        'repeatable' => false,
-        'tome_index' => nil,
-        'tax_count' => nil,
-        'type' => 'LEARN'
-    })
+    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 23,'ings' => [1, -3, 1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 40,'ings' => [0, -2, 2, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 31,'ings' => [0, 3, 2, -2],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 36,'ings' => [0, -3, 3, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 10,'ings' => [2, 2, 0, -1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 38,'ings' => [-2, 2, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
     current_ings = [3,0,0,0]
     subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
@@ -672,7 +512,7 @@ describe "simple" do
     path = subject.get_shortest_path([-2,0,-2,0], current_ings)
   end
 
-  fit "10 test" do
+  it "10 test" do
     subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
@@ -695,5 +535,25 @@ describe "simple" do
     # p path.map{|x| x.id}
     path = subject.get_shortest_path([0,0,-2,-2], current_ings)
     # p path.map{|x| x.id}
+  end
+  it "11 test" do
+    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 86,'ings' => [1, 0, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 90,'ings' => [1, 2, -1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 92,'ings' => [1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 94,'ings' => [0, 0, 2, -1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    current_ings = [3,0,0,0]
+    subject.build_tree current_ings
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
+    path = subject.get_shortest_path([-1,-3,-1,-1], current_ings)
+    # path = subject.get_shortest_path([0,-2,-2,0], current_ings)
+    # path = subject.get_shortest_path([0,0,-2,-2], current_ings)
+    # path = subject.get_shortest_path([-2,0,-3,0], current_ings)
+    # path = subject.get_shortest_path([-2,-2,0,0], current_ings)
   end
 end
