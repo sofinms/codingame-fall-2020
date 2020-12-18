@@ -4,11 +4,37 @@ module CodingGame
     class Simulation
         OPTIMAL_PATHS_COUNT = 5
 
-        attr_accessor :spells, :needed_spells, :tree
-        def initialize()
+        attr_accessor :spells, :needed_spells, :tree, :filtered_spells, :use_casts_only, :paths_to_brews, :brews, :my_ings
+        def initialize
             @spells = []
+            @filtered_spells = []
             @needed_spells = []
-            @tree = SpellTree.new @spells
+            @use_casts_only = false
+            @paths_to_brews = []
+            @brews = []
+            @my_ings = [3,0,0,0]
+        end
+        def cur_brews_ids
+            @brews.map {|brew| brew["id"]}
+        end
+        def try_cast spell
+            if spell.castable
+                puts "CAST #{spell.id}"
+                return true
+            else
+                puts "REST"
+                return false
+            end
+        end
+        def try_brew brew_id
+            cur_brew = @brews.find {|brew| brew["id"] == brew_id}
+            STDERR.puts "brew = #{cur_brew}"
+            if get_delta(cur_brew["ings"], @my_ings).find {|ing| ing < 0}.nil?
+                puts "BREW #{brew_id}"
+                return true
+            else
+                return false
+            end
         end
         def disactivate_spells
             @spells.each do |spell|
@@ -16,7 +42,15 @@ module CodingGame
             end
         end
         
+        def filter_spells
+            @filtered_spells = @spells.select {|spell| spell.active}
+            if @use_casts_only
+                @filtered_spells = @filtered_spells.select {|spell| spell.type == "CAST"}
+            end
+        end
         def build_tree ings_state
+            filter_spells
+            @tree = SpellTree.new @filtered_spells
             @tree.root.ings_state = ings_state
             @tree.build_tree(@tree.root)
         end
@@ -80,6 +114,7 @@ module CodingGame
             end
             nodes = nodes.sort_by{|node| node.steps_with_rest_count}
             node = nodes.find{|node| @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?}
+            return [] if node.nil?
             spells = []
             while !node.parent.nil?
                 spells.push(node.spell)
@@ -122,19 +157,8 @@ module CodingGame
                     optimal_steps_rests_count = steps_count
                 end
             end
-            # p optimal_steps.reverse.map{|spell| spell.id}
             optimal_steps.reverse
         end
-
-        # class Brew
-        #     attr_accessor :id, :type, :ings
-
-        #     def initialize(id, ings)
-        #         @id = id
-        #         @ings = ings
-        #         @type = 'BREW'
-        #     end
-        # end
 
         class Spell
             attr_accessor :id, :learn_id, :ings, :tome_index, :tax_count, :castable, :repeatable, :active, :type
@@ -210,7 +234,8 @@ module CodingGame
             def get_possible_spells node
                 return [] if node.steps_with_rest_count > MAX_STEPS_LEVEL
                 possible_spells = []
-                @spells.each do |spell|
+                spells = @spells.select {|spell| spell.active == true }
+                spells.each do |spell|
                     delta = get_delta(node.ings_state, spell.ings)
                     if delta.find {|x| x < 0}.nil? && delta.sum <= MAX_INGS_COUNT
                         possible_spells.push({"spell" => spell, "state_ings" => delta})
