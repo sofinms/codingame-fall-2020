@@ -671,4 +671,24 @@ describe "simple" do
     end
     path = subject.get_shortest_path([-2,0,-2,0], current_ings)
   end
+
+  it "10 test" do
+    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 86,'ings' => [-3, 1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 88,'ings' => [2, 2, 0, -1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 90,'ings' => [2, -2, 0, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    current_ings = [0,0,0,0]
+    subject.build_tree current_ings
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
+    path = subject.get_shortest_path([-1,-1,-1,-3], current_ings)
+    # path = subject.get_shortest_path([-2,0,0,-3], current_ings)
+    # path = subject.get_shortest_path([0,-3,0,-2], current_ings)
+    # path = subject.get_shortest_path([0,0,-2,-3], current_ings)
+    # path = subject.get_shortest_path([0,0,-2,-2], current_ings)
+  end
 end
