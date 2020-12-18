@@ -1,49 +1,182 @@
 STDOUT.sync = true # DO NOT REMOVE
-# Auto-generated code below aims at helping you parse
-# the standard input according to the problem statement.
-class Simulation
-    attr_accessor :spells, :needed_spells
-    
-    def initialize()
-        @spells = []
-        @needed_spells = []
-    end
 
+class Simulation
+    OPTIMAL_PATHS_COUNT = 5
+
+    attr_accessor :spells, :needed_spells, :tree, :filtered_spells, :use_casts_only, :paths_to_brews, :brews, :my_ings
+    def initialize
+        @spells = []
+        @filtered_spells = []
+        @needed_spells = []
+        @use_casts_only = false
+        @paths_to_brews = []
+        @brews = []
+        @my_ings = [3,0,0,0]
+    end
+    def cur_brews_ids
+        @brews.map {|brew| brew["id"]}
+    end
+    def try_cast spell
+        if spell.castable
+            puts "CAST #{spell.id}"
+            return true
+        else
+            puts "REST"
+            return false
+        end
+    end
+    def try_brew brew_id
+        cur_brew = @brews.find {|brew| brew["id"] == brew_id}
+        STDERR.puts "brew = #{cur_brew}"
+        if get_delta(cur_brew["ings"], @my_ings).find {|ing| ing < 0}.nil?
+            puts "BREW #{brew_id}"
+            return true
+        else
+            return false
+        end
+    end
     def disactivate_spells
         @spells.each do |spell|
             spell.active = false
         end
     end
-
-    def find_spell_by_ings ings
-        @spells.find{|_sp| _sp.ings == ings}
-    end
-
-    def get_learns
-        @spells.select{|spell| spell.type == 'LEARN'}
-    end
-
-    def get_casts
-        @spells.select{|spell| spell.type == 'CAST'}
-    end
-
-    class Brew
-        attr_accessor :id, :type, :ings
-
-        def initialize(id, ings)
-            @id = id
-            @ings = ings
-            @type = 'BREW'
+    
+    def spells_optimization spells
+        filtered_spells = []
+        spells.each do |spell_1|
+            good_spell = true
+            spells.each do |spell_2|
+                if spell_1.id != spell_2.id
+                    delta = get_delta(spell_2.ings, spell_1.ings.map {|ing| -ing})
+                    if delta.find {|ing| ing < 0}.nil?
+                        good_spell = false
+                        break
+                    end
+                end
+            end
+            if good_spell
+                filtered_spells.push(spell_1)
+            end
         end
+        filtered_spells
+    end
+    def filter_spells
+        @filtered_spells = @spells.select {|spell| spell.active}
+        if @use_casts_only
+            @filtered_spells = @filtered_spells.select {|spell| spell.type == "CAST"}
+        end
+        @filtered_spells = spells_optimization @filtered_spells
+    end
+    def build_tree ings_state
+        filter_spells
+        @tree = SpellTree.new @filtered_spells
+        @tree.root.ings_state = ings_state
+        @tree.start_time = Time.now
+        @tree.build_tree(@tree.root)
     end
 
-    class Action
-        attr_accessor :type, :link
-
-        def initialize(type, link = nil)
-            @type = type
-            @link = link
+    def get_delta *args
+        delta = [0,0,0,0]
+        args.each do |arg_arr|
+            arg_arr.each_with_index do |ing, idx|
+                delta[idx] += ing
+            end
         end
+        delta
+    end
+    def can_brew spells, cur_ings
+        spells.each do |spell_ings|
+            cur_ings = get_delta(cur_ings, spell_ings)
+            if !cur_ings.find{|x| x < 0}.nil?
+                return false
+            end
+        end
+        true
+    end
+
+    def get_all_learns
+        learns = []
+        @tree.states_history.each do |state, node|
+            if node.spell && node.spell.type == 'LEARN'
+                learns.push node.spell
+            end
+        end
+        learns.uniq
+    end
+
+    def remove_learn learn_id
+    end
+
+    def get_steps_count_with_rests spells
+        used_spells = []
+        steps_count = 0
+        spells.each do |spell|
+            steps_count += 1
+            if used_spells.include? spell.id
+                used_spells = []
+                steps_count += 1
+            end
+            used_spells.push spell.id
+        end
+        steps_count
+    end
+
+    def get_shortest_path brew_ings, cur_ings
+        path_algorithm2 brew_ings
+        # path_algorithm1 brew_ings, cur_ings
+    end
+
+    def path_algorithm2 brew_ings
+        nodes = []
+
+        @tree.states_history.each do |state, node|
+            nodes.push(node)
+        end
+        nodes = nodes.sort_by{|node| node.steps_with_rest_count}
+        node = nodes.find{|node| @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?}
+        return [] if node.nil?
+        spells = []
+        while !node.parent.nil?
+            spells.push(node.spell)
+            node = node.parent
+        end
+        spells.reverse
+    end
+
+    def path_algorithm1 brew_ings, cur_ings
+        nodes = []
+        @tree.states_history.each do |state, node|
+            nodes.push(node)
+        end
+        nodes = nodes.sort_by{|node| node.steps_with_rest_count}
+        best_nodes = []
+        while best_nodes.count < OPTIMAL_PATHS_COUNT && nodes.count > 0
+            node = nodes.shift
+            if @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?
+                best_nodes.push node
+            end
+        end
+        optimal_steps = []
+        optimal_steps_rests_count = 0
+        best_nodes.each do |node|
+            spells = []
+            all_spells_ings = [brew_ings]
+            while !node.parent.nil?
+                spells.push(node.spell)
+                all_spells_ings.unshift(node.spell.ings)
+                my_inv = cur_ings.clone
+                if can_brew(all_spells_ings, my_inv)
+                    break
+                end
+                node = node.parent
+            end
+            steps_count = get_steps_count_with_rests spells
+            if optimal_steps.count == 0 || optimal_steps_rests_count > steps_count
+                optimal_steps = spells.clone
+                optimal_steps_rests_count = steps_count
+            end
+        end
+        optimal_steps.reverse
     end
 
     class Spell
@@ -56,32 +189,55 @@ class Simulation
             @active = true
         end
     end
+    class SpellTree
+        MAX_STEPS_LEVEL = 8
+        MAX_INGS_COUNT = 10
 
-    class Bot
+        attr_accessor :root, :spells, :states_history, :counter, :start_time
+
         def initialize spells
-            @recursion_level = 0
+            @root = Node.new nil, nil, [0,0,0,0]
             @spells = spells
-            @needed_spells = {}
+            @states_history = {}
         end
 
-        def find_diff_ings i1, i2
-            r = []
-            i1.each_with_index do |v,k|
-                r.push(v-i2[k])
+        def build_tree parent_node
+            #if Time.now - @start_time > 0.035
+                #return
+            #end
+            get_possible_spells(parent_node).each do |possible_spell|
+                if @states_history[possible_spell["state_ings"].to_s].nil?
+                    new_node = add_node parent_node, possible_spell
+                    new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
+                    parent_node.children.push new_node
+                    @states_history[possible_spell["state_ings"].to_s] = new_node
+
+                    build_tree new_node
+                elsif parent_node.steps_with_rest_count + 1 < @states_history[possible_spell["state_ings"].to_s].steps_with_rest_count
+                    @states_history.delete(possible_spell["state_ings"].to_s)      
+                    new_node = add_node parent_node, possible_spell
+                    new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
+                    parent_node.children.push new_node
+                    @states_history[possible_spell["state_ings"].to_s] = new_node
+
+                    build_tree new_node
+                else
+                    # add_node parent_node, possible_spell
+                end
             end
-            r
         end
 
-        def self.find_sum_ings i1, i2
-            r = []
-            i1.each_with_index do |v,k|
-                r.push(v+i2[k])
+        def add_node parent_node, possible_spell
+            node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
+            if need_rest(parent_node, possible_spell["spell"].id)
+                node.used_spells = []
+                node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
+            else
+                node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
+                node.used_spells = parent_node.used_spells.clone
             end
-            r
-        end
-
-        def get_needed_spells idx
-            @needed_spells[idx]
+            node.used_spells.push node.spell
+            return node
         end
 
         def get_delta *args
@@ -94,159 +250,45 @@ class Simulation
             delta
         end
 
-        def get_storage_without_other_minuses storage, ing
-            r = []
-            storage.each_with_index do |value, key|
-                if value < 0 && key != ing
-                    value = 0
+        def get_possible_spells node
+            return [] if node.steps_with_rest_count > MAX_STEPS_LEVEL
+            possible_spells = []
+            spells = @spells.select {|spell| spell.active == true }
+            spells.each do |spell|
+                delta = get_delta(node.ings_state, spell.ings)
+                if delta.find {|x| x < 0}.nil? && delta.sum <= MAX_INGS_COUNT
+                    possible_spells.push({"spell" => spell, "state_ings" => delta})
                 end
-                r.push value
             end
-            r
+            possible_spells
         end
 
-        def is_ingredients_in_history history, ings
-            !history.find { |state| state == ings }.nil?
+        def need_rest node, possible_spell_id
+            !node.used_spells.find { |x| x.id == possible_spell_id }.nil?
         end
 
-        def get_storage_other_minuses storage, ing
-            r = []
-            storage.each_with_index do |value, key|
-                if value < 0 && key != ing
-                    value = value
+        def clear_history removed_node
+            @states_history.delete(removed_node.ings_state.to_s)
+            removed_node.children.each do |removed_child|
+                clear_history removed_child
+            end
+        end
+
+        class Node
+            attr_accessor :parent, :children, :spell, :ings_state, :steps_with_rest_count, :used_spells, :name
+            def initialize spell, parent, ings_state
+                @parent = parent
+                @spell = spell
+                @ings_state = ings_state
+                @children = []
+                if parent.nil?
+                    @steps_with_rest_count = 0
+                    @used_spells = []
+                    @name = '*ROOT*'
                 else
-                    value = 0
-                end
-                r.push value
-            end
-            r
-        end
-
-        def find_path delta_inventory, used_spells, needed_spells, prev_ings
-            max_tome_index = @spells.select{|sp| sp.active == true}.sort_by{|sp| ind = sp.tome_index; ind = -1 if ind.nil?; ind;}[0..11].last.tome_index
-            @needed_spells[0] = needed_spells[0].select{|spell| spell.active == true}.reject{|spell| spell.tome_index && spell.tome_index > max_tome_index}
-            @needed_spells[1] = needed_spells[1].select{|spell| spell.active == true}.reject{|spell| spell.tome_index && spell.tome_index > max_tome_index}
-            @needed_spells[2] = needed_spells[2].select{|spell| spell.active == true}.reject{|spell| spell.tome_index && spell.tome_index > max_tome_index}
-            @needed_spells[3] = needed_spells[3].select{|spell| spell.active == true}.reject{|spell| spell.tome_index && spell.tome_index > max_tome_index}
-            @start_time = Time.now
-            return find_optimal_path delta_inventory, used_spells, prev_ings
-        end
-
-        def find_optimal_path delta_inventory, used_spells, prev_ings
-            @recursion_level += 1
-            # tabs = (1..@recursion_level).to_a.map{|_e| "\s"}.join
-            # STDERR.puts tabs + "@#{@recursion_level}\n"
-            # STDERR.puts tabs + "delta_inventory = #{delta_inventory}\n"
-            if @recursion_level > 6
-                @recursion_level -= 1
-                return nil
-            end
-            
-            need_ing = delta_inventory.index { |ing| ing < 0 }
-            if need_ing.nil?
-                info = {
-                    'path' => [],
-                    'ingredients' => delta_inventory,
-                    'used_spells' => used_spells.clone,
-                    'ings_path' => [],
-                    'level' => @recursion_level
-                }
-                @recursion_level -= 1
-                return info
-            end
-            needed_spells = get_needed_spells need_ing
-            needed_spells = needed_spells.reject{|_sp| used_spells.include? _sp.id}
-            
-            # STDERR.puts tabs + "used_spells = #{used_spells}\n"
-            # STDERR.puts tabs + "needed_spells = #{needed_spells.map{|_e| _e.id}}\n"
-            all_paths = []
-            negative_ings_values = []
-            positive_ings = []
-            delta_inventory.each_with_index do |value, key|
-                negative_ings_values.push(value < 0 ? value : 0)
-                positive_ings.push(need_ing == key || value < 0 ? 0 : value)
-            end
-            needed_spells.each do |needed_spell|
-                new_used_spells = used_spells.clone
-                new_used_spells.push needed_spell.id
-                spell_positive_ings = []
-                spell_negative_ings = []
-                possible_ings = []
-                needed_spell.ings.each_with_index do |x, key|
-                    positive_val = x > 0 ? x : 0
-                    negative_val = x > 0 ? 0 : x
-                    if delta_inventory[key] > 0 && prev_ings[key] < 0 && positive_val > 0
-                        possible_ings.push(positive_val)
-                        positive_val = 0
-                    else
-                        possible_ings.push(0)
-                    end
-                    spell_negative_ings.push(negative_val)
-                    spell_positive_ings.push(positive_val)
-                end
-                result_info = find_optimal_path(get_delta(spell_negative_ings, positive_ings, possible_ings), new_used_spells, spell_negative_ings)
-                next if result_info.nil?
-
-                level = result_info['level'] - @recursion_level
-                type = 'CAST'
-                action = Simulation::Action.new(type, needed_spell)
-                all_paths.push({
-                    'path' => result_info["path"] + [action],
-                    'ingredients' => get_delta(result_info["ingredients"], negative_ings_values, spell_positive_ings),
-                    'used_spells' => result_info['used_spells'],
-                    'level' => level,
-                    'ings_path' => result_info["ings_path"] + [get_delta(result_info["ingredients"], spell_positive_ings)]
-                })
-                # if @recursion_level == 1
-            #           ending = Time.now
-            #           elapsed = ending - @start_time
-            #           STDERR.puts "Find path elapsed = #{elapsed}"
-            #           STDERR.puts "all_paths = #{all_paths.count}"
-            #           STDERR.puts "level = #{level}"
-            #           STDERR.puts "path_count = #{(result_info["path"] + [needed_spell]).count}"
-            #       end
-            end
-            # all_paths = all_paths_filter(all_paths)
-
-            optimal_path_info = nil
-            all_paths.each do |path_info|
-                #STDERR.puts tabs + "path_info['ingredients'] = #{path_info['ingredients']}"
-                result_info = find_optimal_path path_info["ingredients"], [], prev_ings
-                next if result_info.nil?
-                result_path = path_info["path"] + result_info["path"]
-                result_ings_path = path_info["ings_path"] + result_info["ings_path"]
-                if optimal_path_info.nil? || optimal_path_info["path"].count > result_path.count
-                    optimal_path_info = {
-                        "path" => result_path,
-                        "ingredients" => result_info["ingredients"],
-                        "used_spells" => result_info['used_spells'].clone,
-                        'level' => result_info["level"],
-                        'ings_path' => result_ings_path
-                    }
+                    @name = "#{@spell.id} #{@ings_state} #{steps_with_rest_count}"
                 end
             end
-            # STDERR.puts tabs + "#{optimal_path_info}\n"
-            if optimal_path_info
-                # STDERR.puts tabs + "optimal_path_info = #{optimal_path_info['path'].map{|_e| _e['id']}}\n"
-            end
-            @recursion_level -= 1
-            return optimal_path_info
-        end
-
-        def all_paths_filter all_paths
-            return all_paths if all_paths.count < 2
-            all_paths = all_paths.sort_by{|_path| _path['path'].count}
-            index = 0
-            while index < all_paths.count - 1
-                ((index+1)..all_paths.count - 1).each do |compare_index|
-                    next if all_paths[compare_index]['rejected'] == true
-                    if all_paths[compare_index]['ingredients'][0] <= all_paths[index]['ingredients'][0] && all_paths[compare_index]['ingredients'][1] <= all_paths[index]['ingredients'][1] && all_paths[compare_index]['ingredients'][2] <= all_paths[index]['ingredients'][2] && all_paths[compare_index]['ingredients'][3] <= all_paths[index]['ingredients'][3]
-                        all_paths[compare_index]['rejected'] = true
-                    end
-                end
-                index += 1
-            end
-            all_paths.reject{|_path| _path['rejected']}
         end
     end
 
@@ -280,7 +322,6 @@ class Simulation
     end
 end
 
-# game loop
 my_info = {
     'inv_0' => 0,
     'inv_1' => 0,
@@ -298,145 +339,27 @@ him_info = {
     'brew_count' => 0
 }
 
-def get_max_price_brews
-    @brews.sort_by{ |h| -h['price'] }.first
-end
-
-def find_actions_path_to_brew bot, brew, simulator
-    STDERR.puts "brew id = #{brew['id']}"
-    storage_after_zel = Simulation::Bot.find_sum_ings(@my_ings, brew['ings'])
-    STDERR.puts "storage_after_zel = #{storage_after_zel}"
-    res = bot.find_path storage_after_zel, [], simulator.needed_spells, brew['ings']
-    actions_path = res['path']
-    path_learns = res['path'].select{|action| action.link.type == 'LEARN'}.uniq{|action| action.link.id}
-    STDERR.puts "path_learns = #{path_learns.map{|action| action.link.id}}"
-    if path_learns.count > 0
-        learn_actions = add_learn_spells path_learns, simulator
-        actions_path = learn_actions + actions_path
-    end
-    STDERR.puts "spell_ids = #{actions_path.map{|action| action.link.id}}"
-    actions_path_with_rests = add_rest_to_path actions_path
-    STDERR.puts "actions_path_with_rests = #{actions_path_with_rests.map{|action| action.type}}"
-    rating = (brew['price'].to_f/actions_path_with_rests.count.to_f).to_f
-    STDERR.puts "rating = #{rating}"
-    STDERR.puts "--------------------"
-    {
-        'brew_id' => brew['id'],
-        'rating' => rating,
-        'path' => actions_path_with_rests
-    }
-end
-
-def detect_all_brew_paths bot, simulator
-    learn_ids = simulator.get_learns().map{|_learn| _learn.id}
-    paths = []
-    @brews.each do |brew|
-        brew_path = find_actions_path_to_brew(bot, brew, simulator)
-        paths.push(brew_path)
-    end
-    paths
-end
-
-def check_all_brew_paths bot, simulator
-    brews_ids = @brews.map{|brew| brew['id']}
-    STDERR.puts 'check_all_brew_paths'
-    STDERR.puts "brews_ids = #{brews_ids}"
-    STDERR.puts "@detected_paths = #{@detected_paths.map{|b| b['brew_id']}}"
-    @detected_paths = @detected_paths.select{|brew_path| brews_ids.include?(brew_path['brew_id'])}
-    STDERR.puts "@detected_paths.count = #{@detected_paths.count}"
-    @detected_paths = @detected_paths.reject do |path|
-        path['path'].find{|action| action.link && action.link.active == false}
-    end
-    STDERR.puts "@detected_paths.count = #{@detected_paths.count}"
-    detected_brew_ids = @detected_paths.map{|brew_path| brew_path['brew_id']}
-    STDERR.puts "detected_brew_ids = #{detected_brew_ids}"
-    need_find_brews = brews_ids - detected_brew_ids
-    STDERR.puts "need_find_brews = #{need_find_brews}"
-    ending = Time.now
-    elapsed = ending - @start_time
-    STDERR.puts "elapsed4 = #{elapsed}"
-    if need_find_brews.count > 0
-        first_brew_id = need_find_brews.first
-        brew = @brews.find{|brew| brew['id'] == first_brew_id}
-        ending = Time.now
-        elapsed = ending - @start_time
-        STDERR.puts "elapsed5 = #{elapsed}"
-        brew_path = find_actions_path_to_brew(bot, brew, simulator)
-        @detected_paths.push(brew_path)
-        @detected_paths = @detected_paths.sort_by{|_b| -_b['rating']}
-    end
-end
-
-
-
-def add_learn_spells learn_actions, simulator
-    cast_helper = simulator.find_spell_by_ings([2,0,0,0])
-    learns = learn_actions.sort_by{|action| action.link.tome_index}.map{|action| action.link}
-    ing1_count = 3
-    actions_path = []
-    index = 0
-    learns.each do |learn|
-        tome_index = learn.tome_index
-        tome_index -= index
-        ing1_count -= tome_index
-        if ing1_count >= 0
-            actions_path.push(Simulation::Action.new('LEARN', learn))
-        end
-        while ing1_count < 0
-            ing1_count += 2
-            actions_path.push(Simulation::Action.new('CAST', cast_helper))
-        end
-        index += 1
-    end
-    while ing1_count < 3
-        ing1_count += 2
-        actions_path.push(Simulation::Action.new('CAST', cast_helper))
-    end
-    actions_path
-end
-
-def add_rest_to_path path
-    actions_path = path.map{|_e| _e.clone; _e.link.castable = true if _e.link.castable.nil?; _e;}
-    result = []
-    actions_path.each do |action|
-        if action.type == 'LEARN'
-            result.push action
-            next
-        end
-        spell = action.link
-        if spell.castable == false
-            result.push(Simulation::Action.new('REST', nil))
-            actions_path.each{|_e| _e.link.castable = true}
-        end
-        result.push(Simulation::Action.new('CAST', spell))
-        spell.castable = false
-    end
-    result
-end
-
 first_iteration = true
-simulator = Simulation.new
-bot = Simulation::Bot.new(simulator.spells)
-@my_ings = []
-@brews = []
-@detected_paths = []
+simulation = Simulation.new
+simulation.paths_to_brews = []
+start_learns = []
 loop do
-    @brews = []
-    simulator.disactivate_spells
+    simulation.disactivate_spells
+    simulation.brews = []
+    shortest_path = []
     action_count = gets.to_i # the number of spells and recipes in play
-    @start_time = Time.now
     action_count.times do
         # action_id: the unique ID of this spell or recipe
-        # action_type: in the first league: BREW; later: CAST, OPPONENT_CAST, LEARN, BREW
+        # action_type: CAST, OPPONENT_CAST, LEARN, BREW
         # delta_0: tier-0 ingredient change
         # delta_1: tier-1 ingredient change
         # delta_2: tier-2 ingredient change
         # delta_3: tier-3 ingredient change
         # price: the price in rupees if this is a potion
-        # tome_index: in the first two leagues: always 0; later: the index in the tome if this is a tome spell, equal to the read-ahead tax; For brews, this is the value of the current urgency bonus
-        # tax_count: in the first two leagues: always 0; later: the amount of taxed tier-0 ingredients you gain from learning this spell; For brews, this is how many times you can still gain an urgency bonus
-        # castable: in the first league: always 0; later: 1 if this is a castable player spell
-        # repeatable: for the first two leagues: always 0; later: 1 if this is a repeatable player spell
+        # tome_index: the index in the tome if this is a tome spell, equal to the read-ahead tax; For brews, this is the value of the current urgency bonus
+        # tax_count: the amount of taxed tier-0 ingredients you gain from learning this spell; For brews, this is how many times you can still gain an urgency bonus
+        # castable: 1 if this is a castable player spell
+        # repeatable: 1 if this is a repeatable player spell
         action_id, action_type, delta_0, delta_1, delta_2, delta_3, price, tome_index, tax_count, castable, repeatable = gets.split(" ")
         action_id = action_id.to_i
         delta_0 = delta_0.to_i
@@ -451,13 +374,13 @@ loop do
 
         case action_type
         when 'BREW'
-            @brews.push ({
+            simulation.brews.push ({
                 'id' => action_id,
                 'price' => price,
                 'ings' => [delta_0, delta_1, delta_2, delta_3]
             })
         when 'CAST', 'LEARN'
-            simulator.add_spell({
+            simulation.add_spell({
                 'id' => action_id,
                 'ings' => [delta_0, delta_1, delta_2, delta_3],
                 'castable' => castable,
@@ -470,36 +393,75 @@ loop do
     end
     my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3'], my_info['score'] = gets.split(" ").collect { |x| x.to_i }
     him_info['inv_0'], him_info['inv_1'], him_info['inv_2'], him_info['inv_3'], him_score = gets.split(" ").collect { |x| x.to_i }
-    @my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
-    
+    simulation.my_ings = [my_info['inv_0'], my_info['inv_1'], my_info['inv_2'], my_info['inv_3']]
     if him_info['score'] < him_score
         him_info['brew_count'] += 1
     end
     him_info['score'] = him_score
 
     if first_iteration
-        @detected_paths = detect_all_brew_paths bot, simulator
-        @detected_paths = @detected_paths.sort_by{|_b| -_b['rating']}
+        simulation.build_tree simulation.my_ings
+        simulation.brews.each do |brew|
+            brew_path = simulation.get_shortest_path brew['ings'], simulation.my_ings
+            start_learns += brew_path.select {|spell| spell.type == "LEARN"}
+        end
+        start_learns = start_learns.uniq
     end
-    check_all_brew_paths bot, simulator
-    best_brew = @detected_paths.first
-    STDERR.puts "best_brew = #{best_brew}"
-    action = best_brew['path'].shift
-    if action.nil?
-        @detected_paths = @detected_paths.reject{|_path| _path['path'].count == 0}
-        puts "BREW #{best_brew['brew_id']}"
-    else
-        case action.type
-        when 'LEARN', 'CAST'
-            puts "#{action.type} #{action.link.id}"
-        when 'REST'
-            puts 'REST'
+    start_learns = start_learns.select {|spell| spell.active}.sort_by { |spell| spell.tome_index }
+    if start_learns.count > 0
+        STDERR.puts "Lets LEARN"
+        cur_learn = start_learns.shift
+        STDERR.puts "I need LEARN #{cur_learn.id}"
+        if my_info['inv_0'] - cur_learn.tome_index > 0
+            puts "LEARN #{cur_learn.id}"
         else
-            STDERR.puts "ERROR! action type not detected"
+            STDERR.puts "Accumulate for LEARN #{cur_learn.id}"
+            simulation.try_cast simulation.spells.find {|x| x.ings == [2,0,0,0]}
+            start_learns.unshift(cur_learn)
+        end
+    else
+        STDERR.puts "All learns learned"
+        if simulation.paths_to_brews.first.nil? || !simulation.cur_brews_ids.include?(simulation.paths_to_brews.first["brew_id"])
+            STDERR.puts "Rebuild tree"
+            simulation.use_casts_only = true
+            simulation.build_tree simulation.my_ings
+            STDERR.puts "build done"
+            simulation.paths_to_brews = []
+
+            simulation.brews.each do |brew|
+                path = simulation.get_shortest_path(brew["ings"], simulation.my_ings)
+                if path.count > 0
+                    simulation.paths_to_brews.push({
+                        "brew_id" => brew["id"],
+                        "path" => path,
+                        "price" => brew["price"],
+                        "ings" => brew["ings"],
+                        "weight" => brew["price"].to_f / path.count.to_f
+                    })
+                end
+            end
+            if him_info['brew_count'] == 5 || my_info['brew_count'] == 5
+                simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| brew_path["path"].count}
+            else #my_info['score'] <= him_score
+                simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| -brew_path["price"]}
+            end
+        end
+        if simulation.paths_to_brews.count == 0
+            simulation.try_cast simulation.spells.find {|spell| spell.ings == [2,0,0,0]}
+        else
+            STDERR.puts "Goal brew = #{simulation.paths_to_brews.first["brew_id"]}, #{simulation.paths_to_brews.first["ings"].to_s}"
+            can_brew = simulation.get_delta(simulation.paths_to_brews.first["ings"], simulation.my_ings).find {|ing| ing < 0}.nil?
+            if simulation.paths_to_brews.first["path"].count == 0 || can_brew
+                if simulation.try_brew(simulation.paths_to_brews.first["brew_id"])
+                    STDERR.puts "we brew #{simulation.paths_to_brews.first["brew_id"]}"
+                else
+                    STDERR.puts "ERROR BREW"
+                end
+            elsif simulation.try_cast simulation.paths_to_brews.first["path"].first
+                simulation.paths_to_brews.first["path"].shift
+            end
         end
     end
-    
-    
 
     # in the first league: BREW <id> | WAIT; later: BREW <id> | CAST <id> [<times>] | LEARN <id> | REST | WAIT
     first_iteration = false
