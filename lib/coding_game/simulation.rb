@@ -184,21 +184,20 @@ module CodingGame
 
             def build_tree parent_node
                 get_possible_spells(parent_node).each do |possible_spell|
-
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node parent_node, possible_spell
+                        new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
                         parent_node.children.push new_node
                         @states_history[possible_spell["state_ings"].to_s] = new_node
-
 
                         build_tree new_node
                     elsif parent_node.steps_with_rest_count + 1 < @states_history[possible_spell["state_ings"].to_s].steps_with_rest_count
-                        history_node = @states_history[possible_spell["state_ings"].to_s]
-                        clear_history history_node
-                        history_node.children = []       
+                        @states_history.delete(possible_spell["state_ings"].to_s)      
                         new_node = add_node parent_node, possible_spell
+                        new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
                         parent_node.children.push new_node
                         @states_history[possible_spell["state_ings"].to_s] = new_node
+
                         build_tree new_node
                     else
                         # add_node parent_node, possible_spell
@@ -207,18 +206,16 @@ module CodingGame
             end
 
             def add_node parent_node, possible_spell
-                if need_rest parent_node, possible_spell["spell"].id
-                    node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
+                node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
+                if need_rest(parent_node, possible_spell["spell"].id)
                     node.used_spells = []
                     node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
-                    node.used_spells.push node.spell
-                    return node
                 else
-                    node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
                     node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
                     node.used_spells = parent_node.used_spells.clone
-                    return node
                 end
+                node.used_spells.push node.spell
+                return node
             end
 
             def get_delta *args
@@ -245,7 +242,7 @@ module CodingGame
             end
 
             def need_rest node, possible_spell_id
-                node.used_spells.find { |x| x.id == possible_spell_id }
+                !node.used_spells.find { |x| x.id == possible_spell_id }.nil?
             end
 
             def clear_history removed_node

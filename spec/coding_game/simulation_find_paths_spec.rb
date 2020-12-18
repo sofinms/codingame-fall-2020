@@ -231,7 +231,7 @@ describe "simple" do
       puts TreeSupport.tree(subject.tree.root)
     end
     path = subject.get_shortest_path([0,0,-2,-2], current_ings)
-    expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
+    expect([[2, 5, 11, 5]].include? path.map{|x| x.id}).to eq true
   end
 
   it "fourth test" do
@@ -664,7 +664,7 @@ describe "simple" do
     subject.add_spell({'id' => 3,'ings' => [0, 0, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
     subject.add_spell({'id' => 14,'ings' => [0, 0, 0, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
     subject.add_spell({'id' => 13,'ings' => [3, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
-    current_ings = [3,0,0,0]
+    current_ings = [5,0,0,0]
     subject.build_tree current_ings
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
