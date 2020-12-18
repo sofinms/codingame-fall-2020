@@ -42,16 +42,37 @@ module CodingGame
             end
         end
         
+        def spells_optimization spells
+            filtered_spells = []
+            spells.each do |spell_1|
+                good_spell = true
+                spells.each do |spell_2|
+                    if spell_1.id != spell_2.id
+                        delta = get_delta(spell_2.ings, spell_1.ings.map {|ing| -ing})
+                        if delta.find {|ing| ing < 0}.nil?
+                            good_spell = false
+                            break
+                        end
+                    end
+                end
+                if good_spell
+                    filtered_spells.push(spell_1)
+                end
+            end
+            filtered_spells
+        end
         def filter_spells
             @filtered_spells = @spells.select {|spell| spell.active}
             if @use_casts_only
                 @filtered_spells = @filtered_spells.select {|spell| spell.type == "CAST"}
             end
+            @filtered_spells = spells_optimization @filtered_spells
         end
         def build_tree ings_state
             filter_spells
             @tree = SpellTree.new @filtered_spells
             @tree.root.ings_state = ings_state
+            @tree.start_time = Time.now
             @tree.build_tree(@tree.root)
         end
 
@@ -120,7 +141,6 @@ module CodingGame
                 spells.push(node.spell)
                 node = node.parent
             end
-            # p optimal_steps.reverse.map{|spell| spell.id}
             spells.reverse
         end
 
@@ -174,7 +194,7 @@ module CodingGame
             MAX_STEPS_LEVEL = 8
             MAX_INGS_COUNT = 10
 
-            attr_accessor :root, :spells, :states_history, :counter
+            attr_accessor :root, :spells, :states_history, :counter, :start_time
 
             def initialize spells
                 @root = Node.new nil, nil, [0,0,0,0]
@@ -183,6 +203,9 @@ module CodingGame
             end
 
             def build_tree parent_node
+                #if Time.now - @start_time > 0.035
+                    #return
+                #end
                 get_possible_spells(parent_node).each do |possible_spell|
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node parent_node, possible_spell
