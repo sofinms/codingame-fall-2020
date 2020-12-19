@@ -81,7 +81,7 @@ describe "simple" do
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
 
-  fit "third test" do
+  it "third test" do
     subject.add_spell({
       'id' => 1,
       'ings' => [2, 0, 0, 0],
@@ -151,8 +151,7 @@ describe "simple" do
       puts TreeSupport.tree(subject.tree.root)
     end
     path = subject.get_shortest_path([0,0,-2,-2], current_ings)
-    p path.map{|x| x.id}
-    expect([[2, 5, 11, 5]].include? path.map{|x| x.id}).to eq true
+    expect([[2, 5, 11, 5],[5, 4, 4, 5]].include? path.map{|x| x.id}).to eq true
   end
 
   it "fourth test" do
@@ -559,5 +558,31 @@ describe "simple" do
     path = subject.get_shortest_path([0,0,-2,-2], current_ings)
     path = subject.get_shortest_path([-2,0,-3,0], current_ings)
     path = subject.get_shortest_path([-2,-2,0,0], current_ings)
+  end
+  fit "12 test" do
+    subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 81,'ings' => [0, 0, -1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
+    subject.add_spell({'id' => 87,'ings' => [1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 89,'ings' => [1, 2, -1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 90,'ings' => [1, 0, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    subject.add_spell({'id' => 93,'ings' => [1, -3, 1, 1],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'LEARN'})
+    
+    current_ings = [5,0,0,0]
+    subject.build_tree current_ings
+    if ENV['DEBUG'] == '1'
+      puts TreeSupport.tree(subject.tree.root)
+    end
+    path = subject.get_shortest_path([0,-2,-2,-2], current_ings)
+    p path.map{|x| x.id}
+    path = subject.get_shortest_path([-2,0,-2,-2], current_ings)
+    p path.map{|x| x.id}
+    path = subject.get_shortest_path([0,-5,0,0], current_ings)
+    p path.map{|x| x.id}
+    path = subject.get_shortest_path([-2,-2,-2,0], current_ings)
+    p path.map{|x| x.id}
+    path = subject.get_shortest_path([-2,-2,0,-2], current_ings)
+    p path.map{|x| x.id}
   end
 end

@@ -68,6 +68,7 @@ module CodingGame
             end
             @filtered_spells = spells_optimization @filtered_spells
         end
+        
         def build_tree ings_state
             filter_spells
             @tree = SpellTree.new @filtered_spells
@@ -127,6 +128,29 @@ module CodingGame
             # path_algorithm1 brew_ings, cur_ings
         end
 
+        def path_algorithm3 brew_ings
+            max_negatives_sum = -100
+            min_steps = 100
+            spells = []
+            @tree.states_history.each do |state, node|
+                sum_negatives = @tree.get_delta(brew_ings,node.ings_state).select{|ing| ing < 0}.sum
+                if sum_negatives > max_negatives_sum
+                    max_negatives_sum = sum_negatives
+                    best_node = node
+                    min_steps = node.steps_with_rest_count
+                elsif sum_negatives == max_negatives_sum && min_steps > node.steps_with_rest_count
+                    max_negatives_sum = sum_negatives
+                    best_node = node
+                    min_steps = node.steps_with_rest_count
+                end
+            end
+            while !best_node.parent.nil?
+                spells.push(best_node.spell)
+                best_node = best_node.parent
+            end
+            spells.reverse
+        end
+
         def path_algorithm2 brew_ings
             nodes = []
 
@@ -134,12 +158,36 @@ module CodingGame
                 nodes.push(node)
             end
             nodes = nodes.sort_by{|node| node.steps_with_rest_count}
-            node = nodes.find{|node| @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?}
-            return [] if node.nil?
+            flag = true
+            best_node = nil
+            nodes.each do |node|
+                if best_node && best_node.steps_with_rest_count < node.steps_with_rest_count
+                    break
+                end
+                if @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?
+                    if best_node.nil?
+                        best_node = node
+                    elsif best_node.steps_with_rest_count == node.steps_with_rest_count
+                        delta1 = @tree.get_delta(brew_ings, node.ings_state)
+                        delta2 = @tree.get_delta(brew_ings, best_node.ings_state)
+                        if delta1.sum > delta2.sum
+                            best_node = node
+                        elsif delta1.sum == delta2.sum
+                            delta3 = @tree.get_delta(delta1, delta2.map{|ing| -ing})
+                            index1 = delta3.find{|ing| ing < 0}
+                            index2 = delta3.find{|ing| ing > 0}
+                            if index1 && index2 && index1 > index2
+                                best_node = node
+                            end
+                        end
+                    end
+                end
+            end
+            return [] if best_node.nil?
             spells = []
-            while !node.parent.nil?
-                spells.push(node.spell)
-                node = node.parent
+            while !best_node.parent.nil?
+                spells.push(best_node.spell)
+                best_node = best_node.parent
             end
             spells.reverse
         end
