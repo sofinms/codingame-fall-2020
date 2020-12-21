@@ -5,6 +5,7 @@ module CodingGame
         OPTIMAL_PATHS_COUNT = 5
 
         attr_accessor :spells, :needed_spells, :tree, :filtered_spells, :use_casts_only, :paths_to_brews, :brews, :my_ings
+
         def initialize
             @spells = []
             @filtered_spells = []
@@ -13,19 +14,94 @@ module CodingGame
             @paths_to_brews = []
             @brews = []
             @my_ings = [3,0,0,0]
+            @saved_best_paths = []
         end
+
+        def clear_saved_paths
+            @saved_best_paths = []
+        end
+
+        def recalculate_saved_paths shifted_spells
+            STDERR.puts "shifted_spells = #{shifted_spells.map{|spell| spell.id}}"
+            new_saved_paths = []
+            if shifted_spells.count == 0
+                @saved_best_paths.each do |save_path|
+                    if save_path['path'].first.nil?
+                        new_saved_paths.push save_path
+                    elsif save_path['path'].first.castable == false
+                        save_path['steps_count'] -= 1
+                        new_saved_paths.push save_path
+                    end
+                end
+            else
+                STDERR.puts '1'
+                @saved_best_paths.each do |save_path|
+                    new_shifted_spells = save_path['path'].shift shifted_spells.count
+                    # STDERR.puts "#{new_shifted_spells.map{|spell| spell.id}}"
+                    # STDERR.puts "#{shifted_spells.map{|spell| spell.id}}"
+                    STDERR.puts save_path['brew_id']
+                    if new_shifted_spells.map{|spell| spell.id} == shifted_spells.map{|spell| spell.id}
+                        save_path['steps_count'] -= shifted_spells.count
+                        new_saved_paths.push save_path
+                        STDERR.puts save_path['brew_id']
+                    end
+                end
+            end
+            @saved_best_paths = new_saved_paths
+        end
+
+        def change_saved_paths brew_id, path
+            if path['best_delta'].find{|ing| ing < 0}.nil? == false
+                return path
+            end
+            STDERR.puts "change_saved_paths"
+            s_p = @saved_best_paths.map do |_path|
+                {'spells' => _path['path'].map{|spell| spell.id}, 'brew_id' => _path['brew_id'], 'steps_count' => _path['steps_count']}
+            end
+            STDERR.puts "@saved_best_paths = #{s_p}"
+            saved_path = @saved_best_paths.find{|saved_p| brew_id == saved_p['brew_id']}
+            STDERR.puts "brew_id = #{brew_id} #{saved_path.nil?.to_s} "
+            if saved_path.nil? == false && saved_path['steps_count'] <= path['steps_count']
+                STDERR.puts "saved_path['steps_count'] = #{saved_path['steps_count']}"
+                return {'path' => saved_path['path'].clone, 'steps_count' => saved_path['steps_count'], 'best_delta' => saved_path['best_delta'].clone}
+            end
+            
+            if saved_path.nil? == false
+                @saved_best_paths = @saved_best_paths.map do |_path|
+                    if brew_id == _path['brew_id']
+                        _path = {'path' => path['path'].clone, 'steps_count' => path['steps_count'], 'best_delta' => path['best_delta'].clone, 'brew_id' => brew_id}
+                    end
+                    _path
+                end
+            else
+                new_path = {'path' => path['path'].clone, 'steps_count' => path['steps_count'], 'best_delta' => path['best_delta'].clone, 'brew_id' => brew_id}
+                @saved_best_paths.push(new_path)
+            end
+
+            return path
+        end
+
+        def learn_max_tome_index
+            tome_index = @my_ings[0]
+            tome_index = 5 if tome_index > 5
+            learn = @spells.find{|spell| spell.type == 'LEARN' && spell.tome_index == tome_index}
+            puts "LEARN #{learn.id}"
+        end
+
         def cur_brews_ids
             @brews.map {|brew| brew["id"]}
         end
-        def try_cast spell
+
+        def try_cast spell, value
             if spell.castable
-                puts "CAST #{spell.id}"
+                puts "CAST #{spell.id} #{value}"
                 return true
             else
                 puts "REST"
                 return false
             end
         end
+
         def try_brew brew_id
             cur_brew = @brews.find {|brew| brew["id"] == brew_id}
             STDERR.puts "brew = #{cur_brew}"
@@ -36,6 +112,7 @@ module CodingGame
                 return false
             end
         end
+
         def disactivate_spells
             @spells.each do |spell|
                 spell.active = false
@@ -43,7 +120,8 @@ module CodingGame
         end
         
         def spells_optimization spells
-            filtered_spells = []
+            filtered_spells = spells.select{|spell| spell.ings.find{|ing| ing < 0}}
+            spells = spells.reject{|spell| spell.ings.find{|ing| ing < 0}}
             spells.each do |spell_1|
                 good_spell = true
                 spells.each do |spell_2|
@@ -61,18 +139,24 @@ module CodingGame
             end
             filtered_spells
         end
+
         def filter_spells
             @filtered_spells = @spells.select {|spell| spell.active}
+
             if @use_casts_only
                 @filtered_spells = @filtered_spells.select {|spell| spell.type == "CAST"}
             end
             @filtered_spells = spells_optimization @filtered_spells
         end
-        
-        def build_tree ings_state
+
+        def build_tree ings_state, max_steps_level = 8, timeout = 0.035
             filter_spells
             @tree = SpellTree.new @filtered_spells
+            @tree.timeout = timeout
             @tree.root.ings_state = ings_state
+            @tree.max_steps_level = max_steps_level
+            @tree.root.used_spells = @filtered_spells.select{|spell| spell.type == 'CAST' && spell.castable == false}
+            @tree.states_history[ings_state.to_s] = @tree.root
             @tree.start_time = Time.now
             @tree.build_tree(@tree.root)
         end
@@ -86,6 +170,7 @@ module CodingGame
             end
             delta
         end
+
         def can_brew spells, cur_ings
             spells.each do |spell_ings|
                 cur_ings = get_delta(cur_ings, spell_ings)
@@ -124,7 +209,7 @@ module CodingGame
         end
 
         def get_shortest_path brew_ings, cur_ings
-            path_algorithm2 brew_ings
+            path_algorithm3 brew_ings
             # path_algorithm1 brew_ings, cur_ings
         end
 
@@ -132,23 +217,57 @@ module CodingGame
             max_negatives_sum = -100
             min_steps = 100
             spells = []
+            best_node = nil
+            best_delta = []
+            best_sum_positive= -1
             @tree.states_history.each do |state, node|
-                sum_negatives = @tree.get_delta(brew_ings,node.ings_state).select{|ing| ing < 0}.sum
-                if sum_negatives > max_negatives_sum
-                    max_negatives_sum = sum_negatives
-                    best_node = node
-                    min_steps = node.steps_with_rest_count
-                elsif sum_negatives == max_negatives_sum && min_steps > node.steps_with_rest_count
-                    max_negatives_sum = sum_negatives
-                    best_node = node
-                    min_steps = node.steps_with_rest_count
+                delta_result = @tree.get_delta(brew_ings, node.ings_state)
+                sum_negatives = delta_result.select{|ing| ing < 0}.sum
+                sum_positive = delta_result.select{|ing| ing < 0}.sum
+                if sum_negatives == 0
+                    if max_negatives_sum < 0
+                        max_negatives_sum = sum_negatives
+                        best_sum_positive = sum_positive
+                        best_node = node
+                        min_steps = node.steps_with_rest_count
+                        best_delta = delta_result
+                    else
+                        if min_steps > node.steps_with_rest_count
+                            max_negatives_sum = sum_negatives
+                            best_sum_positive = sum_positive
+                            best_node = node
+                            min_steps = node.steps_with_rest_count
+                            best_delta = delta_result
+                        elsif min_steps == node.steps_with_rest_count && sum_positive > best_sum_positive
+                            max_negatives_sum = sum_negatives
+                            best_sum_positive = sum_positive
+                            best_node = node
+                            min_steps = node.steps_with_rest_count
+                            best_delta = delta_result
+                        end
+                    end
+                else
+                    if sum_negatives > max_negatives_sum
+                        max_negatives_sum = sum_negatives
+                        best_sum_positive = sum_positive
+                        best_node = node
+                        min_steps = node.steps_with_rest_count
+                        best_delta = delta_result
+                    elsif sum_negatives == max_negatives_sum && min_steps > node.steps_with_rest_count
+                        max_negatives_sum = sum_negatives
+                        best_sum_positive = sum_positive
+                        best_node = node
+                        min_steps = node.steps_with_rest_count
+                        best_delta = delta_result
+                    end
                 end
             end
+            steps_with_rest_count = best_node.steps_with_rest_count
             while !best_node.parent.nil?
                 spells.push(best_node.spell)
                 best_node = best_node.parent
             end
-            spells.reverse
+            {'path' => spells.reverse, 'steps_count' => steps_with_rest_count, 'best_delta' => best_delta}
         end
 
         def path_algorithm2 brew_ings
@@ -183,13 +302,14 @@ module CodingGame
                     end
                 end
             end
-            return [] if best_node.nil?
+            return {'path' => [], 'steps_count' => 0} if best_node.nil?
             spells = []
+            steps_with_rest_count = best_node.steps_with_rest_count
             while !best_node.parent.nil?
                 spells.push(best_node.spell)
                 best_node = best_node.parent
             end
-            spells.reverse
+            {'path' => spells.reverse, 'steps_count' => steps_with_rest_count}
         end
 
         def path_algorithm1 brew_ings, cur_ings
@@ -238,23 +358,25 @@ module CodingGame
                 @active = true
             end
         end
+
         class SpellTree
-            MAX_STEPS_LEVEL = 8
             MAX_INGS_COUNT = 10
 
-            attr_accessor :root, :spells, :states_history, :counter, :start_time
+            attr_accessor :root, :spells, :states_history, :counter, :start_time, :max_steps_level, :timeout
 
             def initialize spells
+                @max_steps_level = 6
                 @root = Node.new nil, nil, [0,0,0,0]
                 @spells = spells
                 @states_history = {}
             end
 
             def build_tree parent_node
-                #if Time.now - @start_time > 0.035
-                    #return
-                #end
-                get_possible_spells(parent_node).each do |possible_spell|
+                if Time.now - @start_time > @timeout
+                    return
+                end
+                possible_spells = get_possible_spells(parent_node)
+                possible_spells.each do |possible_spell|
                     if @states_history[possible_spell["state_ings"].to_s].nil?
                         new_node = add_node parent_node, possible_spell
                         new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
@@ -278,14 +400,19 @@ module CodingGame
 
             def add_node parent_node, possible_spell
                 node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
-                if need_rest(parent_node, possible_spell["spell"].id)
-                    node.used_spells = []
-                    node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
-                else
-                    node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
+                if possible_spell["spell"].repeatable && parent_node.spell && parent_node.spell.id == possible_spell["spell"].id
+                    node.steps_with_rest_count = parent_node.steps_with_rest_count
                     node.used_spells = parent_node.used_spells.clone
+                else
+                    if need_rest(parent_node, possible_spell["spell"].id)
+                        node.used_spells = []
+                        node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
+                    else
+                        node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
+                        node.used_spells = parent_node.used_spells.clone
+                    end
+                    node.used_spells.push node.spell
                 end
-                node.used_spells.push node.spell
                 return node
             end
 
@@ -300,8 +427,9 @@ module CodingGame
             end
 
             def get_possible_spells node
-                return [] if node.steps_with_rest_count > MAX_STEPS_LEVEL
+                return [] if node.steps_with_rest_count > @max_steps_level
                 possible_spells = []
+                
                 spells = @spells.select {|spell| spell.active == true }
                 spells.each do |spell|
                     delta = get_delta(node.ings_state, spell.ings)
@@ -324,17 +452,19 @@ module CodingGame
             end
 
             class Node
-                attr_accessor :parent, :children, :spell, :ings_state, :steps_with_rest_count, :used_spells, :name
+                attr_accessor :parent, :children, :spell, :ings_state, :steps_with_rest_count, :used_spells, :name, :level
                 def initialize spell, parent, ings_state
                     @parent = parent
                     @spell = spell
                     @ings_state = ings_state
                     @children = []
+                    @level = 0
                     if parent.nil?
                         @steps_with_rest_count = 0
                         @used_spells = []
                         @name = '*ROOT*'
                     else
+                        @level = @parent.level + 1
                         @name = "#{@spell.id} #{@ings_state} #{steps_with_rest_count}"
                     end
                 end

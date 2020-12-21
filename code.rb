@@ -4,6 +4,7 @@ class Simulation
     OPTIMAL_PATHS_COUNT = 5
 
     attr_accessor :spells, :needed_spells, :tree, :filtered_spells, :use_casts_only, :paths_to_brews, :brews, :my_ings
+
     def initialize
         @spells = []
         @filtered_spells = []
@@ -12,19 +13,94 @@ class Simulation
         @paths_to_brews = []
         @brews = []
         @my_ings = [3,0,0,0]
+        @saved_best_paths = []
     end
+
+    def clear_saved_paths
+        @saved_best_paths = []
+    end
+
+    def recalculate_saved_paths shifted_spells
+        STDERR.puts "shifted_spells = #{shifted_spells.map{|spell| spell.id}}"
+        new_saved_paths = []
+        if shifted_spells.count == 0
+            @saved_best_paths.each do |save_path|
+                if save_path['path'].first.nil?
+                    new_saved_paths.push save_path
+                elsif save_path['path'].first.castable == false
+                    save_path['steps_count'] -= 1
+                    new_saved_paths.push save_path
+                end
+            end
+        else
+            STDERR.puts '1'
+            @saved_best_paths.each do |save_path|
+                new_shifted_spells = save_path['path'].shift shifted_spells.count
+                # STDERR.puts "#{new_shifted_spells.map{|spell| spell.id}}"
+                # STDERR.puts "#{shifted_spells.map{|spell| spell.id}}"
+                STDERR.puts save_path['brew_id']
+                if new_shifted_spells.map{|spell| spell.id} == shifted_spells.map{|spell| spell.id}
+                    save_path['steps_count'] -= shifted_spells.count
+                    new_saved_paths.push save_path
+                    STDERR.puts save_path['brew_id']
+                end
+            end
+        end
+        @saved_best_paths = new_saved_paths
+    end
+
+    def change_saved_paths brew_id, path
+        if path['best_delta'].find{|ing| ing < 0}.nil? == false
+            return path
+        end
+        STDERR.puts "change_saved_paths"
+        s_p = @saved_best_paths.map do |_path|
+            {'spells' => _path['path'].map{|spell| spell.id}, 'brew_id' => _path['brew_id'], 'steps_count' => _path['steps_count']}
+        end
+        STDERR.puts "@saved_best_paths = #{s_p}"
+        saved_path = @saved_best_paths.find{|saved_p| brew_id == saved_p['brew_id']}
+        STDERR.puts "brew_id = #{brew_id} #{saved_path.nil?.to_s} "
+        if saved_path.nil? == false && saved_path['steps_count'] <= path['steps_count']
+            STDERR.puts "saved_path['steps_count'] = #{saved_path['steps_count']}"
+            return {'path' => saved_path['path'].clone, 'steps_count' => saved_path['steps_count'], 'best_delta' => saved_path['best_delta'].clone}
+        end
+        
+        if saved_path.nil? == false
+            @saved_best_paths = @saved_best_paths.map do |_path|
+                if brew_id == _path['brew_id']
+                    _path = {'path' => path['path'].clone, 'steps_count' => path['steps_count'], 'best_delta' => path['best_delta'].clone, 'brew_id' => brew_id}
+                end
+                _path
+            end
+        else
+            new_path = {'path' => path['path'].clone, 'steps_count' => path['steps_count'], 'best_delta' => path['best_delta'].clone, 'brew_id' => brew_id}
+            @saved_best_paths.push(new_path)
+        end
+
+        return path
+    end
+
+    def learn_max_tome_index
+        tome_index = @my_ings[0]
+        tome_index = 5 if tome_index > 5
+        learn = @spells.find{|spell| spell.type == 'LEARN' && spell.tome_index == tome_index}
+        puts "LEARN #{learn.id}"
+    end
+
     def cur_brews_ids
         @brews.map {|brew| brew["id"]}
     end
-    def try_cast spell
+
+    def try_cast spell, value
         if spell.castable
-            puts "CAST #{spell.id}"
+            puts "CAST #{spell.id} #{value}"
             return true
         else
             puts "REST"
             return false
         end
     end
+
     def try_brew brew_id
         cur_brew = @brews.find {|brew| brew["id"] == brew_id}
         STDERR.puts "brew = #{cur_brew}"
@@ -35,6 +111,7 @@ class Simulation
             return false
         end
     end
+
     def disactivate_spells
         @spells.each do |spell|
             spell.active = false
@@ -42,7 +119,8 @@ class Simulation
     end
     
     def spells_optimization spells
-        filtered_spells = []
+        filtered_spells = spells.select{|spell| spell.ings.find{|ing| ing < 0}}
+        spells = spells.reject{|spell| spell.ings.find{|ing| ing < 0}}
         spells.each do |spell_1|
             good_spell = true
             spells.each do |spell_2|
@@ -60,17 +138,24 @@ class Simulation
         end
         filtered_spells
     end
+
     def filter_spells
         @filtered_spells = @spells.select {|spell| spell.active}
+
         if @use_casts_only
             @filtered_spells = @filtered_spells.select {|spell| spell.type == "CAST"}
         end
         @filtered_spells = spells_optimization @filtered_spells
     end
-    def build_tree ings_state
+
+    def build_tree ings_state, max_steps_level = 8, timeout = 0.035
         filter_spells
         @tree = SpellTree.new @filtered_spells
+        @tree.timeout = timeout
         @tree.root.ings_state = ings_state
+        @tree.max_steps_level = max_steps_level
+        @tree.root.used_spells = @filtered_spells.select{|spell| spell.type == 'CAST' && spell.castable == false}
+        @tree.states_history[ings_state.to_s] = @tree.root
         @tree.start_time = Time.now
         @tree.build_tree(@tree.root)
     end
@@ -84,6 +169,7 @@ class Simulation
         end
         delta
     end
+
     def can_brew spells, cur_ings
         spells.each do |spell_ings|
             cur_ings = get_delta(cur_ings, spell_ings)
@@ -122,8 +208,65 @@ class Simulation
     end
 
     def get_shortest_path brew_ings, cur_ings
-        path_algorithm2 brew_ings
+        path_algorithm3 brew_ings
         # path_algorithm1 brew_ings, cur_ings
+    end
+
+    def path_algorithm3 brew_ings
+        max_negatives_sum = -100
+        min_steps = 100
+        spells = []
+        best_node = nil
+        best_delta = []
+        best_sum_positive= -1
+        @tree.states_history.each do |state, node|
+            delta_result = @tree.get_delta(brew_ings, node.ings_state)
+            sum_negatives = delta_result.select{|ing| ing < 0}.sum
+            sum_positive = delta_result.select{|ing| ing < 0}.sum
+            if sum_negatives == 0
+                if max_negatives_sum < 0
+                    max_negatives_sum = sum_negatives
+                    best_sum_positive = sum_positive
+                    best_node = node
+                    min_steps = node.steps_with_rest_count
+                    best_delta = delta_result
+                else
+                    if min_steps > node.steps_with_rest_count
+                        max_negatives_sum = sum_negatives
+                        best_sum_positive = sum_positive
+                        best_node = node
+                        min_steps = node.steps_with_rest_count
+                        best_delta = delta_result
+                    elsif min_steps == node.steps_with_rest_count && sum_positive > best_sum_positive
+                        max_negatives_sum = sum_negatives
+                        best_sum_positive = sum_positive
+                        best_node = node
+                        min_steps = node.steps_with_rest_count
+                        best_delta = delta_result
+                    end
+                end
+            else
+                if sum_negatives > max_negatives_sum
+                    max_negatives_sum = sum_negatives
+                    best_sum_positive = sum_positive
+                    best_node = node
+                    min_steps = node.steps_with_rest_count
+                    best_delta = delta_result
+                elsif sum_negatives == max_negatives_sum && min_steps > node.steps_with_rest_count
+                    max_negatives_sum = sum_negatives
+                    best_sum_positive = sum_positive
+                    best_node = node
+                    min_steps = node.steps_with_rest_count
+                    best_delta = delta_result
+                end
+            end
+        end
+        steps_with_rest_count = best_node.steps_with_rest_count
+        while !best_node.parent.nil?
+            spells.push(best_node.spell)
+            best_node = best_node.parent
+        end
+        {'path' => spells.reverse, 'steps_count' => steps_with_rest_count, 'best_delta' => best_delta}
     end
 
     def path_algorithm2 brew_ings
@@ -133,14 +276,39 @@ class Simulation
             nodes.push(node)
         end
         nodes = nodes.sort_by{|node| node.steps_with_rest_count}
-        node = nodes.find{|node| @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?}
-        return [] if node.nil?
-        spells = []
-        while !node.parent.nil?
-            spells.push(node.spell)
-            node = node.parent
+        flag = true
+        best_node = nil
+        nodes.each do |node|
+            if best_node && best_node.steps_with_rest_count < node.steps_with_rest_count
+                break
+            end
+            if @tree.get_delta(brew_ings, node.ings_state).find {|el| el < 0}.nil?
+                if best_node.nil?
+                    best_node = node
+                elsif best_node.steps_with_rest_count == node.steps_with_rest_count
+                    delta1 = @tree.get_delta(brew_ings, node.ings_state)
+                    delta2 = @tree.get_delta(brew_ings, best_node.ings_state)
+                    if delta1.sum > delta2.sum
+                        best_node = node
+                    elsif delta1.sum == delta2.sum
+                        delta3 = @tree.get_delta(delta1, delta2.map{|ing| -ing})
+                        index1 = delta3.find{|ing| ing < 0}
+                        index2 = delta3.find{|ing| ing > 0}
+                        if index1 && index2 && index1 > index2
+                            best_node = node
+                        end
+                    end
+                end
+            end
         end
-        spells.reverse
+        return {'path' => [], 'steps_count' => 0} if best_node.nil?
+        spells = []
+        steps_with_rest_count = best_node.steps_with_rest_count
+        while !best_node.parent.nil?
+            spells.push(best_node.spell)
+            best_node = best_node.parent
+        end
+        {'path' => spells.reverse, 'steps_count' => steps_with_rest_count}
     end
 
     def path_algorithm1 brew_ings, cur_ings
@@ -189,23 +357,25 @@ class Simulation
             @active = true
         end
     end
+
     class SpellTree
-        MAX_STEPS_LEVEL = 8
         MAX_INGS_COUNT = 10
 
-        attr_accessor :root, :spells, :states_history, :counter, :start_time
+        attr_accessor :root, :spells, :states_history, :counter, :start_time, :max_steps_level, :timeout
 
         def initialize spells
+            @max_steps_level = 6
             @root = Node.new nil, nil, [0,0,0,0]
             @spells = spells
             @states_history = {}
         end
 
         def build_tree parent_node
-            #if Time.now - @start_time > 0.035
-                #return
-            #end
-            get_possible_spells(parent_node).each do |possible_spell|
+            if Time.now - @start_time > @timeout
+                return
+            end
+            possible_spells = get_possible_spells(parent_node)
+            possible_spells.each do |possible_spell|
                 if @states_history[possible_spell["state_ings"].to_s].nil?
                     new_node = add_node parent_node, possible_spell
                     new_node.name = "#{new_node.spell.id} #{new_node.ings_state} #{new_node.steps_with_rest_count}"
@@ -229,14 +399,19 @@ class Simulation
 
         def add_node parent_node, possible_spell
             node = SpellTree::Node.new possible_spell["spell"], parent_node, possible_spell["state_ings"]
-            if need_rest(parent_node, possible_spell["spell"].id)
-                node.used_spells = []
-                node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
-            else
-                node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
+            if possible_spell["spell"].repeatable && parent_node.spell && parent_node.spell.id == possible_spell["spell"].id
+                node.steps_with_rest_count = parent_node.steps_with_rest_count
                 node.used_spells = parent_node.used_spells.clone
+            else
+                if need_rest(parent_node, possible_spell["spell"].id)
+                    node.used_spells = []
+                    node.steps_with_rest_count = parent_node.steps_with_rest_count + 2
+                else
+                    node.steps_with_rest_count = parent_node.steps_with_rest_count + 1
+                    node.used_spells = parent_node.used_spells.clone
+                end
+                node.used_spells.push node.spell
             end
-            node.used_spells.push node.spell
             return node
         end
 
@@ -251,8 +426,9 @@ class Simulation
         end
 
         def get_possible_spells node
-            return [] if node.steps_with_rest_count > MAX_STEPS_LEVEL
+            return [] if node.steps_with_rest_count > @max_steps_level
             possible_spells = []
+            
             spells = @spells.select {|spell| spell.active == true }
             spells.each do |spell|
                 delta = get_delta(node.ings_state, spell.ings)
@@ -275,17 +451,19 @@ class Simulation
         end
 
         class Node
-            attr_accessor :parent, :children, :spell, :ings_state, :steps_with_rest_count, :used_spells, :name
+            attr_accessor :parent, :children, :spell, :ings_state, :steps_with_rest_count, :used_spells, :name, :level
             def initialize spell, parent, ings_state
                 @parent = parent
                 @spell = spell
                 @ings_state = ings_state
                 @children = []
+                @level = 0
                 if parent.nil?
                     @steps_with_rest_count = 0
                     @used_spells = []
                     @name = '*ROOT*'
                 else
+                    @level = @parent.level + 1
                     @name = "#{@spell.id} #{@ings_state} #{steps_with_rest_count}"
                 end
             end
@@ -399,66 +577,106 @@ loop do
     end
     him_info['score'] = him_score
 
+    # simulation.spells.each do |spell|
+    #     STDERR.puts "spell id = #{spell.id}"
+    #     STDERR.puts "spell type = #{spell.type}"
+    #     STDERR.puts "spell active = #{spell.active}"
+    #     if spell.learn_id
+    #         STDERR.puts "spell learn_id = #{spell.learn_id}"
+    #     end
+    #     if spell.type == 'CAST'
+    #         STDERR.puts "spell castable = #{spell.castable}"
+    #     end
+    #     STDERR.puts "-----------"
+    # end
     if first_iteration
-        simulation.build_tree simulation.my_ings
+        simulation.build_tree simulation.my_ings, 15, 0.985
         simulation.brews.each do |brew|
             brew_path = simulation.get_shortest_path brew['ings'], simulation.my_ings
-            start_learns += brew_path.select {|spell| spell.type == "LEARN"}
+            STDERR.puts "brew id = #{brew['id']} path = #{brew_path['path'].map{|spell| spell.id}}"
+            start_learns += brew_path['path'].select {|spell| spell.type == "LEARN"}
         end
         start_learns = start_learns.uniq
     end
     start_learns = start_learns.select {|spell| spell.active}.sort_by { |spell| spell.tome_index }
     if start_learns.count > 0
         STDERR.puts "Lets LEARN"
+        STDERR.puts "start_learns = #{start_learns.map{|learn| learn.id}}"
         cur_learn = start_learns.shift
         STDERR.puts "I need LEARN #{cur_learn.id}"
         if my_info['inv_0'] - cur_learn.tome_index > 0
             puts "LEARN #{cur_learn.id}"
         else
             STDERR.puts "Accumulate for LEARN #{cur_learn.id}"
-            simulation.try_cast simulation.spells.find {|x| x.ings == [2,0,0,0]}
+            simulation.try_cast simulation.spells.find {|x| x.ings == [2,0,0,0]}, 1
             start_learns.unshift(cur_learn)
         end
     else
-        STDERR.puts "All learns learned"
-        if simulation.paths_to_brews.first.nil? || !simulation.cur_brews_ids.include?(simulation.paths_to_brews.first["brew_id"])
-            STDERR.puts "Rebuild tree"
-            simulation.use_casts_only = true
-            simulation.build_tree simulation.my_ings
-            STDERR.puts "build done"
-            simulation.paths_to_brews = []
+        STDERR.puts "Rebuild tree"
+        simulation.use_casts_only = true
+        simulation.build_tree simulation.my_ings, 8
+        STDERR.puts "build done"
+        simulation.paths_to_brews = []
 
-            simulation.brews.each do |brew|
-                path = simulation.get_shortest_path(brew["ings"], simulation.my_ings)
-                if path.count > 0
-                    simulation.paths_to_brews.push({
-                        "brew_id" => brew["id"],
-                        "path" => path,
-                        "price" => brew["price"],
-                        "ings" => brew["ings"],
-                        "weight" => brew["price"].to_f / path.count.to_f
-                    })
-                end
+        simulation.brews.each do |brew|
+            can_brew = simulation.get_delta(brew["ings"], simulation.my_ings).find {|ing| ing < 0}.nil?
+            path = simulation.get_shortest_path(brew["ings"], simulation.my_ings)
+            path = simulation.change_saved_paths brew['id'], path
+            rating = ((brew["price"].to_f / (path['steps_count'] + 1).to_f) - 1.6) 
+            if !path["best_delta"].find{|ing| ing < 0}.nil?
+                rating -= 10.0
             end
-            if him_info['brew_count'] == 5 || my_info['brew_count'] == 5
-                simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| brew_path["path"].count}
-            else #my_info['score'] <= him_score
-                simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| -brew_path["price"]}
-            end
+            STDERR.puts "brew id = #{brew['id']} rating = #{rating} steps_count=#{path['steps_count']} steps=#{path['path'].map{|spell| spell.id}} best_delta=#{path["best_delta"]}"
+            simulation.paths_to_brews.push({
+                "brew_id" => brew["id"],
+                "path" => path['path'],
+                "price" => brew["price"],
+                "ings" => brew["ings"],
+                'rating' => rating,
+                "best_delta" => path["best_delta"],
+                "steps_count" => path['steps_count']
+            })
+   
         end
-        if simulation.paths_to_brews.count == 0
-            simulation.try_cast simulation.spells.find {|spell| spell.ings == [2,0,0,0]}
+        # if him_info['brew_count'] >=4
+        #     simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| brew_path["steps_count"]}
+        # else #my_info['score'] <= him_score
+            simulation.paths_to_brews = simulation.paths_to_brews.sort_by {|brew_path| -brew_path["rating"]}
+        # end
+            
+        
+        STDERR.puts "Goal brew = #{simulation.paths_to_brews.first["brew_id"]}, #{simulation.paths_to_brews.first["ings"].to_s}"
+        can_brew = simulation.get_delta(simulation.paths_to_brews.first["ings"], simulation.my_ings).find {|ing| ing < 0}.nil?
+        if can_brew
+            if simulation.try_brew(simulation.paths_to_brews.first["brew_id"])
+                STDERR.puts "we brew #{simulation.paths_to_brews.first["brew_id"]}"
+            else
+                STDERR.puts "ERROR BREW"
+            end
+            simulation.clear_saved_paths
         else
-            STDERR.puts "Goal brew = #{simulation.paths_to_brews.first["brew_id"]}, #{simulation.paths_to_brews.first["ings"].to_s}"
-            can_brew = simulation.get_delta(simulation.paths_to_brews.first["ings"], simulation.my_ings).find {|ing| ing < 0}.nil?
-            if simulation.paths_to_brews.first["path"].count == 0 || can_brew
-                if simulation.try_brew(simulation.paths_to_brews.first["brew_id"])
-                    STDERR.puts "we brew #{simulation.paths_to_brews.first["brew_id"]}"
+            if simulation.paths_to_brews.first["path"].count == 0
+                STDERR.puts "simulation.paths_to_brews not found"
+                if simulation.my_ings.sum >= 5 && simulation.my_ings[0] > 2
+                    simulation.learn_max_tome_index
                 else
-                    STDERR.puts "ERROR BREW"
+                    cast_result = simulation.try_cast simulation.spells.find {|spell| spell.ings == [2,0,0,0]}, 1
                 end
-            elsif simulation.try_cast simulation.paths_to_brews.first["path"].first
-                simulation.paths_to_brews.first["path"].shift
+                simulation.clear_saved_paths
+            else
+                cast_value = 1
+                if simulation.paths_to_brews.first["path"][0].repeatable && simulation.paths_to_brews.first["path"][1] && simulation.paths_to_brews.first["path"][0].id == simulation.paths_to_brews.first["path"][1].id
+                    cast_value = 2
+                end
+                cast_result = simulation.try_cast simulation.paths_to_brews.first["path"].first, cast_value
+                STDERR.puts "after cast"
+                if cast_result
+                    shifted_spells = simulation.paths_to_brews.first["path"].shift cast_value
+                    simulation.recalculate_saved_paths shifted_spells
+                else
+                    simulation.recalculate_saved_paths []
+                end
+                
             end
         end
     end
