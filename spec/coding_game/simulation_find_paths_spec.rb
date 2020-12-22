@@ -28,7 +28,7 @@ describe "simple" do
     expect(path.map{|x| x.id}).to eq [78, 33, 6]
   end
 
-  it "second test" do
+  fit "second test" do
     subject.add_spell({
       'id' => 1,
       'ings' => [2, 0, 0, 0],
@@ -75,12 +75,14 @@ describe "simple" do
       'type' => 'CAST'
     })
     current_ings = [3,0,0,0]
-    subject.build_tree current_ings, 8
+    subject.build_tree current_ings, 10
     if ENV['DEBUG'] == '1'
       puts TreeSupport.tree(subject.tree.root)
     end
-    result = subject.get_shortest_path([0,0,-2,-2], current_ings)
+    result = subject.get_shortest_path([-4,-3,0,-2], current_ings)
     path = result['path']
+    p path.map{|x| x.id}
+    p path.map{|x| x.id}
     expect([[5, 4, 4, 5], [5, 4, 5, 4]].include? path.map{|x| x.id}).to eq true
   end
 
@@ -696,7 +698,7 @@ describe "simple" do
     expect([[79,79,40,4]].include? path.map{|x| x.id}).to eq true
   end
 
-  fit "16 test" do
+  it "16 test" do
     subject.add_spell({'id' => 78,'ings' => [2, 0, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 79,'ings' => [-1, 1, 0, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})
     subject.add_spell({'id' => 80,'ings' => [0, -1, 1, 0],'castable' => true,'repeatable' => false,'tome_index' => nil,'tax_count' => nil,'type' => 'CAST'})

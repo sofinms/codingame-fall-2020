@@ -34,16 +34,11 @@ module CodingGame
                     end
                 end
             else
-                STDERR.puts '1'
                 @saved_best_paths.each do |save_path|
                     new_shifted_spells = save_path['path'].shift shifted_spells.count
-                    # STDERR.puts "#{new_shifted_spells.map{|spell| spell.id}}"
-                    # STDERR.puts "#{shifted_spells.map{|spell| spell.id}}"
-                    STDERR.puts save_path['brew_id']
                     if new_shifted_spells.map{|spell| spell.id} == shifted_spells.map{|spell| spell.id}
-                        save_path['steps_count'] -= shifted_spells.count
+                        save_path['steps_count'] -= 1
                         new_saved_paths.push save_path
-                        STDERR.puts save_path['brew_id']
                     end
                 end
             end
@@ -118,6 +113,31 @@ module CodingGame
                 spell.active = false
             end
         end
+
+        def get_best_learns
+            filtered_spells = []
+            only_positive_spells = @spells.reject{|spell| spell.ings.find{|ing| ing < 0}}
+            casts = only_positive_spells.select{|spell| spell.type == 'CAST' && spell.active == true}
+            learns = only_positive_spells.select{|spell| spell.type == 'LEARN' && spell.active == true}
+            if casts.find{|spell| spell.ings == [4,0,0,0]}
+                learns = learns.reject{|spell| spell.ings == [3,0,0,0]}
+            end
+            learns
+            # learns.each do |spell_1|
+            #     good_learn = false
+            #     casts.each do |spell_2|
+            #         delta = get_delta(spell_1.ings, spell_2.ings.map {|ing| -ing})
+            #         if delta.find {|ing| ing < 0}.nil?
+            #             good_learn = true
+            #             break
+            #         end
+            #     end
+            #     if good_learn
+            #         filtered_spells.push(spell_1)
+            #     end
+            # end
+            # filtered_spells
+        end
         
         def spells_optimization spells
             filtered_spells = spells.select{|spell| spell.ings.find{|ing| ing < 0}}
@@ -149,7 +169,7 @@ module CodingGame
             @filtered_spells = spells_optimization @filtered_spells
         end
 
-        def build_tree ings_state, max_steps_level = 8, timeout = 0.035
+        def build_tree ings_state, max_steps_level = 8, timeout = 0.045
             filter_spells
             @tree = SpellTree.new @filtered_spells
             @tree.timeout = timeout
@@ -223,7 +243,7 @@ module CodingGame
             @tree.states_history.each do |state, node|
                 delta_result = @tree.get_delta(brew_ings, node.ings_state)
                 sum_negatives = delta_result.select{|ing| ing < 0}.sum
-                sum_positive = delta_result.select{|ing| ing < 0}.sum
+                sum_positive = delta_result.select{|ing| ing > 0}.sum
                 if sum_negatives == 0
                     if max_negatives_sum < 0
                         max_negatives_sum = sum_negatives
